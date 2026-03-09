@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
@@ -27,6 +28,7 @@ def book_parking(request, parking_id):
             try:
                 booking.clean()
                 booking.save()
+                messages.success(request, 'החנייה הוזמנה בהצלחה!')
                 return render(request, 'parking/booking_success.html', {'booking': booking})
             except ValidationError as e:
                 form.add_error(None, e)

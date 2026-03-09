@@ -11,9 +11,21 @@ class ParkingSpace(models.Model):
     address = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
     price_per_hour=models.DecimalField(max_digits=10, decimal_places=2)
-    instructions = models.TextField(blank=True)
+    instructions = models.TextField(blank=True, null=True, help_text="הוראות מיוחדות למשתמשים (למשל: מיקום מדויק, דרכי גישה, וכו')")
     lat = models.FloatField(null=True, blank=True)
     lon = models.FloatField(null=True, blank=True)
+
+    start_date = models.DateField(null=True, blank=True, help_text="תאריך התחלה לזמינות החניה")
+    end_date = models.DateField(null=True, blank=True, help_text="תאריך סיום לזמינות החניה")
+    available_from=models.TimeField(null=True, blank=True, help_text="שעת התחלה לזמינות החניה בכל יום")
+    available_to=models.TimeField(null=True, blank=True, help_text="שעת סיום לזמינות החניה בכל יום")
+    available_sun = models.BooleanField(default=True, verbose_name="א'")
+    available_mon = models.BooleanField(default=True, verbose_name="ב'")
+    available_tue = models.BooleanField(default=True, verbose_name="ג'")
+    available_wed = models.BooleanField(default=True, verbose_name="ד'")
+    available_thu = models.BooleanField(default=True, verbose_name="ה'")
+    available_fri = models.BooleanField(default=True, verbose_name="ו'")
+    available_sat = models.BooleanField(default=True, verbose_name="ש'")
 
     def save(self, *args, **kwargs):
         if self.address and (self.lat is None or self.lon is None):
@@ -51,17 +63,46 @@ class Booking(models.Model):
     status = models.CharField(max_length=20,choices=STATUS_CHOICES, default='pending')
 
     def clean(self):
+        super().clean()
+        if not self.start_time or not self.end_time:
+            raise ValidationError("זמני התחלה וסיום הם שדות חובה.")
+
         if self.start_time >= self.end_time:
-            raise ValidationError("Start time must be before end time.")
+            raise ValidationError("זמן ההתחלה חייב להיות לפני זמן הסיום.")
 
         try:
             if self.parking_space and self.buyer:
                 if timezone.now() > self.end_time or timezone.now() > self.start_time:
-                    raise ValidationError("Booking times must be in the future.")
+                    raise ValidationError("לא ניתן להזמין חניה לזמן שעבר.")
 
                 if self.parking_space.bookings.filter(
                     status__in=['pending', 'approved'],start_time__lt=self.end_time,end_time__gt=self.start_time).exclude(id=self.id).exists():
-                    raise ValidationError("This parking space is already booked for the selected time range.")
+                    raise ValidationError(" החניה כבר הוזמנה לתקופה זו. אנא בחר זמן אחר.")
+
+                parking=self.parking_space
+
+                if parking.start_date and self.start_time.date() < parking.start_date:
+                    raise ValidationError(f"החניה זמינה החל מ-{parking.start_date}")
+
+                if parking.end_date and self.end_time.date() > parking.end_date:
+                    raise ValidationError(f"החניה זמינה עד {parking.end_date}")
+
+                if parking.available_from and parking.available_to:
+                    if self.start_time.time() < parking.available_from or self.end_time.time() > parking.available_to:
+                        raise ValidationError(f'החנייה זמינה רק בין השעות {parking.available_from.strftime("%H:%M")} ל-{parking.avaliable_to.strftime("%H:%M")}.')
+
+                available_days = {
+                    0: parking.available_mon,
+                    1: parking.available_tue,
+                    2: parking.available_wed,
+                    3: parking.available_thu,
+                    4: parking.available_fri,
+                    5: parking.available_sat,
+                    6: parking.available_sun,
+                }
+
+                if not available_days[self.start_time.weekday()] or not available_days[self.end_time.weekday()]:
+                    raise ValidationError(f"החניה לא זמינה בימי {self.start_time.strftime('%A')}")
         except (ParkingSpace.DoesNotExist, User.DoesNotExist):
             pass
     def __str__(self):
