@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Parky - Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>חניות זמינות בסביבת HIT</h1>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([32.0158, 34.7734], 15);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        {% for p in parkings %}
+            L.marker([{{ p.lat }}, {{ p.lon }}]).addTo(map)
+                .bindPopup("<b>{{ p.name }}</b><br>{{ p.address }}<br>מחיר: {{ p.price_per_hour }} ש''ח");
+        {% endfor %}
+    </script>
+</body>
+</html>
