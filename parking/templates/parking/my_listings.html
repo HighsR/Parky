@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}החניות שלי - Parky{% endblock %}
+
+{% block content %}
+<style>
+    .listings-container {
+        max-width: 1000px;
+        margin: 40px auto;
+        direction: rtl;
+        padding: 0 20px;
+        font-family: Arial, sans-serif;
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 15px;
+    }
+
+    .add-btn {
+        background-color: #28a745;
+        color: white;
+        padding: 12px 20px;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: bold;
+        transition: 0.3s;
+    }
+
+    .add-btn:hover { background-color: #218838; }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 25px;
+    }
+
+    .listing-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        padding: 20px;
+        border-right: 6px solid #1877f2;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .listing-card h3 { margin: 0 0 10px 0; color: #1c1e21; }
+
+    .info-row { font-size: 14px; color: #65676b; margin-bottom: 8px; }
+    .info-row strong { color: #1c1e21; }
+
+    .actions {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #f0f2f5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .edit-link {
+        color: #1877f2;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .delete-btn {
+        color: #dc3545;
+        background: none;
+        border: none;
+        font-weight: bold;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 0;
+        font-family: inherit;
+    }
+</style>
+
+<div class="listings-container">
+    <div class="header-section">
+        <h1>החניות שפרסמתי</h1>
+        <a href="{% url 'add_parking_space' %}" class="add-btn">+ פרסם חנייה נוספת</a>
+    </div>
+
+    {% if parkings %}
+        <div class="grid">
+            {% for p in parkings %}
+                <div class="listing-card">
+                    <div>
+                        <h3>{{ p.name }}</h3>
+                        <p class="info-row"><strong>כתובת:</strong> {{ p.address }}, {{ p.city }}</p>
+                        <p class="info-row"><strong>מחיר:</strong> {{ p.price_per_hour }} ש"ח לשעה</p>
+                        <p class="info-row"><strong>סטטוס:</strong> {% if p.is_active %}✅ פעיל{% else %}❌ לא פעיל{% endif %}</p>
+                    </div>
+
+                    <div class="actions">
+                        <a href="{% url 'edit_parking_space' p.id %}" class="edit-link">עריכה</a>
+
+                        <form action="{% url 'delete_parking_space' p.id %}" method="post" style="margin: 0;" onsubmit="return confirm('האם אתה בטוח שברצונך למחוק את החנייה?');">
+                            {% csrf_token %}
+                            <button type="submit" class="delete-btn">מחיקה</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>עדיין לא פרסמת אף חנייה.</p>
+            <a href="{% url 'add_parking_space' %}" style="color: #1877f2; font-weight: bold; text-decoration: none;">לחץ כאן לפרסום החנייה הראשונה שלך</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

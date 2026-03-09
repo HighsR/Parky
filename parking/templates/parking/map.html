@@ -1,28 +1,81 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Parky - Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        #map { height: 600px; width: 100%; }
-    </style>
-</head>
-<body>
-    <h1>חניות זמינות בסביבת HIT</h1>
-    <div id="map"></div>
+{% extends "base.html" %}
+{% load l10n %}
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        var map = L.map('map').setView([32.0158, 34.7734], 15);
+{% block title %}מפת חניות - Parky{% endblock %}
 
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-        {% for p in parkings %}
-            L.marker([{{ p.lat }}, {{ p.lon }}]).addTo(map)
-                .bindPopup("<b>{{ p.name }}</b><br>{{ p.address }}<br>מחיר: {{ p.price_per_hour }} ש''ח");
-        {% endfor %}
-    </script>
-</body>
-</html>
+<style>
+    #main-map {
+        height: 600px;
+        width: 100%;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        z-index: 1;
+    }
+    .map-header {
+        text-align: center;
+        margin-bottom: 20px;
+        direction: rtl;
+    }
+</style>
+
+<div class="map-header">
+    <h1>מצא חנייה ב-Parky</h1>
+    <p>מציג חניות פעילות על המפה</p>
+</div>
+
+<div id="main-map"></div>
+
+<script>
+    // הגדרת המפה
+    var map = L.map('main-map').setView([31.989, 34.773], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    var markerGroup = new L.featureGroup();
+    var hasMarkers = false;
+
+    // הדרך הבטוחה ביותר: הוספת כל חנייה בנפרד בתוך הלולאה של דג'נגו
+    {% for p in parkings %}
+        {% if p.lat and p.lon %}
+            {% localize off %}
+            (function() {
+                var lat = {{ p.lat }};
+                var lon = {{ p.lon }};
+                var name = "{{ p.name|escapejs }}";
+                var address = "{{ p.address|escapejs }}";
+                var price = "{{ p.price_per_hour }}";
+                var bookUrl = "{% url 'book_parking' p.id %}";
+
+                console.log("Adding marker for: " + name);
+
+                var marker = L.marker([lat, lon])
+                    .bindPopup(
+                        '<div style="text-align: right; direction: rtl; font-family: Arial;">' +
+                        '<h3 style="margin: 0 0 5px 0;">' + name + '</h3>' +
+                        '<p style="margin: 0 0 3px 0;"><b>כתובת:</b> ' + address + '</p>' +
+                        '<p style="margin: 0 0 10px 0;"><b>מחיר:</b> ' + price + ' ש"ח לשעה</p>' +
+                        '<a href="' + bookUrl + '" ' +
+                        'style="display: block; background: #1877f2; color: white; text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; font-weight: bold;">' +
+                        'להזמנה מהירה</a></div>'
+                    );
+                markerGroup.addLayer(marker);
+                hasMarkers = true;
+            })();
+            {% endlocalize %}
+        {% endif %}
+    {% endfor %}
+
+    markerGroup.addTo(map);
+
+    if (hasMarkers) {
+        map.fitBounds(markerGroup.getBounds().pad(0.1));
+    } else {
+        console.log("No valid markers found to display.");
+    }
+</script>
+{% endblock %}

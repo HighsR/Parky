@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}יצירת חשבון - Parky{% endblock %}
+
+{% block content %}
+<style>
+    .register-container {
+        max-width: 450px;
+        margin: 40px auto;
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+        text-align: center;
+        color: #1a1a1a;
+        margin-bottom: 25px;
+    }
+
+    form p {
+        margin-bottom: 15px;
+    }
+
+    input[type="text"], input[type="password"], input[type="email"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
+
+    .helptext {
+        display: block;
+        font-size: 11px;
+        color: #666;
+        margin-top: 4px;
+        line-height: 1.4;
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 12px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s;
+        margin-top: 10px;
+    }
+
+    .btn-submit:hover {
+        background-color: #218838;
+    }
+
+    .footer-links {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 14px;
+    }
+</style>
+
+<div class="register-container">
+    <h2>הצטרפו ל-Parky</h2>
+
+    <form method="post">
+        {% csrf_token %}
+
+        {{ form.as_p }}
+
+        <button type="submit" class="btn-submit">צור חשבון</button>
+    </form>
+
+    <div class="footer-links">
+        כבר רשומים? <a href="{% url 'login' %}">התחברו כאן</a>
+    </div>
+</div>
+{% endblock %}

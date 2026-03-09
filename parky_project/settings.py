@@ -38,6 +38,10 @@ DATABASES = {
     }
 }
 
+LOGIN_URL='/accounts/login/'
+LOGIN_REDIRECT_URL='/map/'
+
+
 LANGUAGE_CODE = 'he'
 
 TIME_ZONE = 'Asia/Jerusalem'

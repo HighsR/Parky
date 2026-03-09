@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <title>ההזמנה בוצעה!</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; }
+        .success-card { display: inline-block; padding: 40px; border: 2px solid #4CAF50; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div class="success-card">
+        <h1>כל הכבוד! 🎉</h1>
+        <p>הזמנת את <strong>{{ booking.parking_space.name }}</strong> בהצלחה.</p>
+        <p>שעת התחלה: {{ booking.start_time }}</p>
+        <a href="{% url 'map_view' %}">חזרה למפה</a>
+    </div>
+</body>
+</html>

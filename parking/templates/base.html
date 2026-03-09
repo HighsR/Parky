@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Parky - מצא חנייה בקלות{% endblock %}</title>
+    <style>
+        /* עיצוב כללי */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
+            color: #333;
+        }
+
+        /* עיצוב ה-Navbar */
+        nav {
+            background: #2c3e50;
+            padding: 12px 5%;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ecf0f1;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        nav a {
+            color: #bdc3c7;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: white;
+        }
+
+        /* כפתור הוספת חנייה מודגש */
+        .btn-add-parking {
+            background-color: #3498db;
+            color: white !important;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            transition: background 0.3s !important;
+        }
+
+        .btn-add-parking:hover {
+            background-color: #2980b9;
+        }
+
+        /* תוכן האתר */
+        .content {
+            padding: 30px 5%;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        /* כפתור התנתקות כטקסט */
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #bdc3c7;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.95rem;
+            padding: 0;
+        }
+
+        .logout-btn:hover { color: #e74c3c; }
+
+        span.user-greeting {
+            color: #ecf0f1;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <a href="{% url 'map_view' %}" class="nav-brand">🚗 Parky</a>
+
+    <div class="nav-links">
+        <a href="{% url 'map_view' %}">מפת חניות</a>
+
+        {% if user.is_authenticated %}
+            <a href="{% url 'add_parking_space' %}" class="btn-add-parking">➕ פרסם חנייה</a>
+            <a href="{% url 'my_listings' %}">החניות שלי</a>
+            <a href="{% url 'my_bookings' %}">ההזמנות שלי</a>
+
+            <span class="user-greeting">שלום, {{ user.username }}</span>
+
+            <form action="{% url 'logout' %}" method="post" style="display: inline; margin: 0;">
+                {% csrf_token %}
+                <button type="submit" class="logout-btn">התנתק</button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}">התחברות</a>
+            <a href="{% url 'register' %}" style="border: 1px solid #bdc3c7; padding: 5px 12px; border-radius: 5px;">הרשמה</a>
+        {% endif %}
+    </div>
+</nav>
+
+<div class="content">
+    {% block content %}
+    {% endblock %}
+</div>
+
+</body>
+</html>

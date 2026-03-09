@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}החנייה פורסמה בהצלחה! - Parky{% endblock %}
+
+{% block content %}
+<style>
+    .success-container {
+        max-width: 550px;
+        margin: 80px auto;
+        background: white;
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    .check-mark {
+        width: 80px;
+        height: 80px;
+        background: #e7f4e8;
+        color: #28a745;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 40px;
+        margin: 0 auto 25px;
+    }
+    .success-title { color: #1a1a1a; margin-bottom: 15px; }
+    .success-text { color: #666; line-height: 1.6; margin-bottom: 30px; }
+    .action-buttons { display: flex; gap: 15px; justify-content: center; }
+    .btn {
+        padding: 12px 25px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 15px;
+        transition: 0.2s;
+    }
+    .btn-map { background-color: #1877f2; color: white; }
+    .btn-map:hover { background-color: #166fe5; }
+    .btn-manage { background-color: #f0f2f5; color: #1c1e21; }
+    .btn-manage:hover { background-color: #e4e6eb; }
+</style>
+
+<div class="success-container">
+    <div class="check-mark">✓</div>
+    <h2 class="success-title">מזל טוב! החנייה שלך פורסמה</h2>
+    <p class="success-text">
+        החנייה <strong>{{ parking_name }}</strong> נוספה בהצלחה למפה. <br>
+        מעכשיו, סטודנטים ב-HIT יוכלו לראות אותה ולשלוח בקשות הזמנה.
+    </p>
+
+    <div class="action-buttons">
+        <a href="{% url 'map_view' %}" class="btn btn-map">צפה במפה</a>
+        <a href="{% url 'my_listings' %}" class="btn btn-manage">נהל את החניות שלי</a>
+    </div>
+</div>
+{% endblock %}

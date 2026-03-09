@@ -1,0 +1,131 @@
+l
+{% extends "base.html" %}
+
+{% block title %}פרסום חנייה חדשה - Parky{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+    .add-parking-card {
+        max-width: 600px;
+        margin: 40px auto;
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .form-group {
+        margin-bottom: 20px;
+        text-align: right;
+    }
+    .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: #333;
+    }
+    .form-group input, .form-group select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
+    .btn-save {
+        width: 100%;
+        padding: 14px;
+        background-color: #1877f2;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+    .btn-save:hover { background-color: #166fe5; }
+    #picker-map {
+        height: 300px;
+        width: 100%;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+    }
+</style>
+
+<div class="add-parking-card">
+    <h2>
+    {% if edit_mode %}
+        עריכת חנייה: {{ parking.name }}
+    {% else %}
+        פרסום חנייה חדשה
+    {% endif %}
+    </h2>
+    <p style="text-align: center; color: #666;">מלא את הפרטים כדי שסטודנטים אחרים יוכלו למצוא את החנייה שלך.</p>
+
+    <form method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <div style="background-color: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
+                <strong style="display: block; margin-bottom: 5px;">משהו השתבש:</strong>
+                <ul style="margin: 0; padding-right: 20px;">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="{{ form.name.id_for_label }}">שם החנייה:</label>
+            {{ form.name }}
+            {{ form.name.errors }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.city.id_for_label }}">עיר:</label>
+            {{ form.city }}
+            {{ form.city.errors }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.address.id_for_label }}">כתובת מלאה:</label>
+            {{ form.address }}
+            {{ form.address.errors }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.price_per_hour.id_for_label }}">מחיר לשעה (בש"ח):</label>
+            {{ form.price_per_hour }}
+            {{ form.price_per_hour.errors }}
+        </div>
+
+        <div class="form-group">
+            <label>בחר מיקום במפה:</label>
+            <div id="picker-map"></div>
+            {{ form.lat }}
+            {{ form.lon }}
+            {{ form.lat.errors }}
+            {{ form.lon.errors }}
+        </div>
+
+        <button type="submit" class="btn-save">פרסם חנייה במפה</button>
+    </form>
+</div>
+
+<script>
+    var map = L.map('picker-map').setView([31.989, 34.773], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    var marker;
+    map.on('click', function(e) {
+        if (marker) marker.setLatLng(e.latlng);
+        else marker = L.marker(e.latlng).addTo(map);
+
+        document.getElementById('{{ form.lat.id_for_label }}').value = e.latlng.lat.toFixed(6);
+        document.getElementById('{{ form.lon.id_for_label }}').value = e.latlng.lng.toFixed(6);
+    });
+</script>
+{% endblock %}

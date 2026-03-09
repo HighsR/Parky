@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}הזמנת חנייה - Parky{% endblock %}
+
+{% block content %}
+<style>
+    /* עיצובים שספציפיים רק לדף הזה */
+    .container { max-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin: 40px auto; }
+    h1 { color: #333; }
+    .error-list { color: red; font-weight: bold; list-style: none; padding: 0; }
+    .parking-info { background: #eef2ff; padding: 10px; border-radius: 4px; margin-bottom: 20px; }
+    button { background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; width: 100%; }
+    button:hover { background-color: #45a049; }
+</style>
+
+<div class="container">
+    <h1>הזמנת חנייה</h1>
+
+    <div class="parking-info">
+        <strong>חנייה:</strong> {{ parking_space.name }} <br>
+        <strong>כתובת:</strong> {{ parking_space.address }}, {{ parking_space.city }}
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <ul class="error-list">
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {{ form.as_p }}
+
+        <button type="submit">אשר הזמנה</button>
+    </form>
+
+    <br>
+    <div style="text-align: center;">
+        <a href="{% url 'map_view' %}" style="text-decoration: none; color: #666;">ביטול וחזרה למפה</a>
+    </div>
+</div>
+{% endblock %}

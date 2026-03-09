@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}ההזמנות שלי - Parky{% endblock %}
+
+{% block content %}
+<style>
+    /* עיצובים שספציפיים רק לטבלה של ההזמנות */
+    .container { max-width: 900px; margin: 30px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { padding: 12px; text-align: right; border-bottom: 1px solid #ddd; }
+    th { background-color: #f1f1f1; }
+    .status-approved { color: green; font-weight: bold; }
+    .status-pending { color: orange; font-weight: bold; }
+    .no-bookings { text-align: center; padding: 40px; color: #666; }
+</style>
+
+<div class="container">
+    <h1>ההזמנות שלי</h1>
+
+    {% if bookings %}
+        <table>
+            <thead>
+                <tr>
+                    <th>חנייה</th>
+                    <th>תאריך התחלה</th>
+                    <th>תאריך סיום</th>
+                    <th>סטטוס</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for b in bookings %}
+                <tr>
+                    <td>{{ b.parking_space.name }}</td>
+                    <td>{{ b.start_time|date:"d/m/Y H:i" }}</td>
+                    <td>{{ b.end_time|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <span class="status-{{ b.status }}">
+                            {{ b.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="no-bookings">
+            <p>עדיין לא ביצעת הזמנות חנייה.</p>
+            <a href="{% url 'map_view' %}">מצא חנייה עכשיו</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
