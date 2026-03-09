@@ -21,4 +21,5 @@ db.sqlite3-journal
 local_settings.py
 
 # User uploaded files (Future proofing)
-media/
+media/*
+!media/README.md
