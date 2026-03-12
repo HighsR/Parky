@@ -1,11 +1,13 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = os.environ.get('SECRET_KEY')
 
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = []
 
@@ -32,7 +34,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'parky_project.urls'
-STATICFILES_DIRS = []
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
