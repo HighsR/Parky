@@ -9,10 +9,17 @@
 
             {% if messages %}
                 {% for message in messages %}
+                    {% if message.tags == 'error' %}
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="סגור"></button>
+                        </div>
+                    {% else %}
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         {{ message }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="סגור"></button>
                     </div>
+                    {% endif %}
                 {% endfor %}
             {% endif %}
 
@@ -22,7 +29,7 @@
                 </div>
                 <div class="card-body p-4">
 
-                    <form method="POST">
+                    <form method="POST" novalidate>
                         {% csrf_token %}
 
                         <h5 class="text-secondary border-bottom pb-2 mb-3">פרטי חשבון</h5>

@@ -16,10 +16,15 @@ def map_view(request):
 @login_required
 def book_parking(request, parking_id):
     parking_space = get_object_or_404(ParkingSpace, id=parking_id)
-
+    profile,created = Profile.objects.get_or_create(user=request.user)
     if request.method == 'POST':
         form=BookingForm(request.POST)
-
+        if not profile.phone_number:
+            messages.error(request,'בשביל לבצע הזמנה, עליך להוסיף מספר טלפון בפרופיל שלך.')
+            return redirect('profile')
+        if not profile.license_plate:
+            messages.error(request, 'בשביל לבצע בזמנה, עליך להוסיף מספר רכב בפרופיל שלך.')
+            return redirect('profile')
         if form.is_valid():
             booking=form.save(commit=False)
             booking.buyer=request.user

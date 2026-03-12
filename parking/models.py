@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from geopy.geocoders import Nominatim
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from phonenumber_field.modelfields import PhoneNumberField
+
 
 class ParkingSpace(models.Model):
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -97,7 +99,7 @@ class Booking(models.Model):
 
                 if parking.available_from and parking.available_to:
                     if self.start_time.time() < parking.available_from or self.end_time.time() > parking.available_to:
-                        raise ValidationError(f'החנייה זמינה רק בין השעות {parking.available_from.strftime("%H:%M")} ל-{parking.avaliable_to.strftime("%H:%M")}.')
+                        raise ValidationError(f'החנייה זמינה רק בין השעות {parking.available_from.strftime("%H:%M")} ל-{parking.available_to.strftime("%H:%M")}.')
 
                 available_days = {
                     0: parking.available_mon,
@@ -119,12 +121,11 @@ class Booking(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
 
-    phone_number = models.CharField(max_length=15, unique=True , blank=True , null=True)
+    phone_number = PhoneNumberField(unique=True, blank=True , null=True)
 
-    license_plate = models.CharField(max_length=15 , unique=True, blank=True , null=True)
+    license_plate = models.CharField(max_length=8 , unique=True, blank=True , null=True)
 
     user_rating = models.FloatField(default=0)
-
 
     def __str__(self):
         return f"{self.user.username} Profile"

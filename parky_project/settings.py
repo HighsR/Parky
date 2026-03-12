@@ -17,6 +17,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'parking.apps.ParkingConfig',
+    #Other apps
+    "phonenumber_field",
 ]
 
 MIDDLEWARE = [
@@ -46,6 +48,8 @@ LOGOUT_REDIRECT_URL='/map/'
 LANGUAGE_CODE = 'he'
 
 TIME_ZONE = 'Asia/Jerusalem'
+
+PHONENUMBER_DEFAULT_REGION ='IL'
 
 USE_I18N = True
 USE_TZ = True

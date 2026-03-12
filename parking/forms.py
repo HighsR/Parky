@@ -1,9 +1,10 @@
 from django import forms
 import datetime
+import requests
 
 from django.contrib.auth.models import User
 from django.utils import timezone
-
+from django.core.exceptions import ValidationError
 from parking.models import Booking, ParkingSpace, Profile
 
 
@@ -52,11 +53,19 @@ class BookingStatusForm(forms.ModelForm):
         }
 
 class UserUpdateForm(forms.ModelForm):
-    email = forms.EmailField(required=True,label='אימייל')
+    email = forms.EmailField(
+        required=True,
+        label='דוא"ל',
+        error_messages={
+            'invalid': 'אנא הזן כתובת מייל חוקית.',
+            'unique': 'כתובת מייל זו כבר קיימת במערכת. אנא הזן כתובת מייל אחרת.',
+            }
+    )
 
     class Meta:
         model = User
         fields = ['first_name','last_name', 'email']
+
 
 
 class ProfileUpdateForm(forms.ModelForm):
@@ -67,3 +76,52 @@ class ProfileUpdateForm(forms.ModelForm):
             'phone_number': 'מספר טלפון',
             'license_plate': 'מספר רכב'
         }
+        error_messages = {
+            'phone_number': {
+                'invalid': 'מספר טלפון לא חוקי. אנא הזן מספר טלפון תקין.',
+                'unique': 'מספר טלפון זה כבר קיים במערכת. אנא הזן מספר טלפון אחר.',
+            }
+
+        }
+    def clean_license_plate(self):
+        plate = self.cleaned_data.get('license_plate')
+        if not plate:
+            return plate
+
+        if self.instance and self.instance.license_plate == plate:
+            return plate
+
+        base_url='https://data.gov.il/api/3/action/datastore_search'
+        params1={
+            'resource_id': '053cea08-09bc-40ec-8f7a-156f0677aff3',
+            'filters': f'{{"mispar_rechev": "{plate}"}}'
+        }
+        params2={
+            'resource_id': '0866573c-40cd-4ca8-91d2-9dd2d7a492e5',
+        'filters': f'{{"mispar_rechev": "{plate}"}}'
+        }
+        try:
+            first_response=requests.get(base_url, params=params1,timeout=5)
+        except requests.RequestException:
+            raise ValidationError('אירעה שגיאה בעת אימות מספר הרכב. אנא נסה שוב מאוחר יותר.')
+
+
+        if first_response.status_code == 200:
+            first_data=first_response.json()
+            first_records = first_data.get('result', {}).get('records', [])
+
+            if len(first_records) != 0:
+                return plate
+        try:
+            second_response = requests.get(base_url, params=params2,timeout=5)
+        except requests.RequestException:
+            raise ValidationError('אירעה שגיאה בעת אימות מספר הרכב. אנא נסה שוב מאוחר יותר.')
+
+        if second_response.status_code == 200:
+            second_data = second_response.json()
+            second_records = second_data.get('result', {}).get('records', [])
+
+            if len(second_records) != 0:
+                return plate
+
+        raise ValidationError('מספר רכב לא נמצא במאגר הרכב הישראלי. אנא בדוק את מספר הרכב ונסה שוב.')
