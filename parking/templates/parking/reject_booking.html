@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}דחיית הזמנה - Parky{% endblock %}
+
+{% block content %}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <h2 class="mb-4">דחיית הזמנה</h2>
+                    <p>האם אתה בטוח שברצונך לדחות את ההזמנה?</p>
+                    <ul class="list-unstyled text-start mb-4">
+                        <li><strong>חנייה:</strong> {{ booking.parking_space.name }}</li>
+                        <li><strong>מזמין:</strong> {{ booking.user.get_full_name|default:booking.buyer.username }}</li>
+                        <li><strong>זמן התחלה:</strong> {{ booking.start_time|date:"d/m/Y H:i" }}</li>
+                        <li><strong>זמן סיום:</strong> {{ booking.end_time|date:"d/m/Y H:i" }}</li>
+                    </ul>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-3">
+                            <button type="submit" class="btn btn-danger">דחה הזמנה</button>
+                            <a href="{% url 'manage_seller_bookings' %}" class="btn btn-secondary">ביטול</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

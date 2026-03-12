@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}אישור הזמנה - Parky{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">אישור הזמנה לחנייה</h3>
+                </div>
+                <div class="card-body">
+                    <p class="fs-5">האם אתה בטוח שברצונך לאשר את ההזמנה הבאה?</p>
+
+                    <ul class="list-group list-group-flush mb-4">
+                        <li class="list-group-item"><strong>חנייה:</strong> {{ booking.parking_space.name }}</li>
+                        <li class="list-group-item"><strong>מזמין:</strong> {{ booking.buyer.username }}</li>
+                        <li class="list-group-item"><strong>זמן התחלה:</strong> {{ booking.start_time|date:"d/m/Y H:i" }}</li>
+                        <li class="list-group-item"><strong>זמן סיום:</strong> {{ booking.end_time|date:"d/m/Y H:i" }}</li>
+                    </ul>
+
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        <div class="d-flex justify-content-between mt-3">
+                            <a href="{% url 'manage_seller_bookings' %}" class="btn btn-outline-secondary">ביטול וחזרה</a>
+                            <button type="submit" class="btn btn-success px-4">כן, אשר הזמנה</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

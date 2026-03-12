@@ -62,6 +62,14 @@ class Booking(models.Model):
 
     status = models.CharField(max_length=20,choices=STATUS_CHOICES, default='pending')
 
+    def get_status(self):
+        if self.status == 'pending':
+            if self.end_time < timezone.now():
+                return 'הסתיים'
+            elif self.start_time > timezone.now():
+                return 'ממתין לאישור'
+        return self.status
+
     def clean(self):
         super().clean()
         if not self.start_time or not self.end_time:
@@ -107,4 +115,19 @@ class Booking(models.Model):
             pass
     def __str__(self):
         return f"Booking by {self.buyer.username} for {self.parking_space.name} from {self.start_time} to {self.end_time} - Status: {self.status}"
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+
+    phone_number = models.CharField(max_length=15, unique=True , blank=True , null=True)
+
+    license_plate = models.CharField(max_length=15 , unique=True, blank=True , null=True)
+
+    user_rating = models.FloatField(default=0)
+
+
+    def __str__(self):
+        return f"{self.user.username} Profile"
+
+
 

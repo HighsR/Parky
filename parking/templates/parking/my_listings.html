@@ -84,12 +84,11 @@
 </style>
 
 <div class="listings-container">
-    <div class="header-section">
-        <h1>החניות שפרסמתי</h1>
-        <a href="{% url 'add_parking_space' %}" class="add-btn">+ פרסם חנייה נוספת</a>
-    </div>
-
     {% if parkings %}
+        <div class="header-section">
+            <h1>החניות שפרסמתי</h1>
+            <a href="{% url 'add_parking_space' %}" class="add-btn">+ פרסם חנייה נוספת</a>
+        </div>
         <div class="grid">
             {% for p in parkings %}
                 <div class="listing-card">

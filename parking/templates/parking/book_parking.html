@@ -90,11 +90,9 @@
 </div>
 
 <script>
-    // סקריפט שמונע בחירת תאריכים ושעות בעבר
     document.addEventListener("DOMContentLoaded", function() {
         var dateInput = document.getElementById("{{ form.booking_date.id_for_label }}");
 
-        // חסימת בחירה של תאריכים בעבר
         if (dateInput) {
             var today = new Date();
             today.setMinutes(today.getMinutes() - today.getTimezoneOffset());

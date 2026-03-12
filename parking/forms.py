@@ -1,9 +1,10 @@
 from django import forms
 import datetime
 
+from django.contrib.auth.models import User
 from django.utils import timezone
 
-from parking.models import Booking, ParkingSpace
+from parking.models import Booking, ParkingSpace, Profile
 
 
 class BookingForm(forms.ModelForm):
@@ -40,4 +41,29 @@ class ParkingSpaceForm(forms.ModelForm):
             'end_date': forms.DateInput(attrs={'type': 'date','class': 'form-control'}),
             'lat': forms.HiddenInput(),
             'lon': forms.HiddenInput(),
+        }
+
+class BookingStatusForm(forms.ModelForm):
+    class Meta:
+        model = Booking
+        fields = ['status']
+        widgets = {
+            'status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+class UserUpdateForm(forms.ModelForm):
+    email = forms.EmailField(required=True,label='אימייל')
+
+    class Meta:
+        model = User
+        fields = ['first_name','last_name', 'email']
+
+
+class ProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['phone_number', 'license_plate']
+        labels = {
+            'phone_number': 'מספר טלפון',
+            'license_plate': 'מספר רכב'
         }

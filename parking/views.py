@@ -3,9 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login
-from .models import ParkingSpace, Booking
-from .forms import BookingForm, ParkingSpaceForm
+from django.contrib.auth import login, logout
+from .models import ParkingSpace, Booking, Profile
+from .forms import BookingForm, ParkingSpaceForm, UserUpdateForm, ProfileUpdateForm
 
 
 def map_view(request):
@@ -107,3 +107,60 @@ def delete_parking_space(request, parking_id):
         return redirect('my_listings')
 
     return render(request, 'parking/delete_parking_space.html', {'parking_space': parking_space})
+
+@login_required
+def manage_seller_bookings(request):
+    user_listings = ParkingSpace.objects.filter(owner=request.user, is_active=True)
+    bookings = Booking.objects.filter(parking_space__in=user_listings).order_by('-start_time')
+    return render(request, 'parking/manage_bookings.html', {'bookings': bookings })
+
+@login_required
+def booking_confirmation(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id, parking_space__owner=request.user)
+
+    if request.method == 'POST':
+        booking.status = 'approved'
+        booking.save()
+        messages.success(request, 'הזמנה אושרה!')
+        return redirect('manage_seller_bookings')
+
+    return render(request, 'parking/accept_booking.html', {'booking': booking})
+
+@login_required
+def booking_rejection(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id, parking_space__owner=request.user)
+
+    if request.method == 'POST':
+        booking.status = 'canceled'
+        booking.save()
+        messages.success(request, 'הזמנה בוטלה!')
+        return redirect('manage_seller_bookings')
+
+    return render(request, 'parking/reject_booking.html', {'booking': booking})
+
+@login_required
+def logout_view(request):
+    logout(request)
+
+    messages.success(request,'התנתקת בהצלחה!')
+
+    return redirect('map_view')
+
+@login_required
+def profile_view(request):
+    profile, created = Profile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        user_form = UserUpdateForm(request.POST, instance=request.user)
+        profile_form = ProfileUpdateForm(request.POST, instance=profile)
+
+        if user_form.is_valid() and profile_form.is_valid():
+            user_form.save()
+            profile_form.save()
+            messages.success(request,'הפרופיל שלך עודכן בהצלחה!')
+            return redirect('profile')
+    else:
+        user_form = UserUpdateForm(instance=request.user)
+        profile_form = ProfileUpdateForm(instance=profile)
+
+    return render(request, 'parking/profile.html', {'user_form': user_form, 'profile_form': profile_form})
