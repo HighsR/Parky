@@ -16,6 +16,7 @@ class ParkingSpace(models.Model):
     instructions = models.TextField(blank=True, null=True, help_text="הוראות מיוחדות למשתמשים (למשל: מיקום מדויק, דרכי גישה, וכו')")
     lat = models.FloatField(null=True, blank=True)
     lon = models.FloatField(null=True, blank=True)
+    legal_declaration = models.BooleanField(default=False, verbose_name="אני מאשר שהחנייה בבעלותי או שיש לי אישור חוקי להשכיר אותה.", help_text="חובה לאשר את ההצהרה המשפטית כדי להוסיף חניה למערכת.")
 
     start_date = models.DateField(null=True, blank=True, help_text="תאריך התחלה לזמינות החניה")
     end_date = models.DateField(null=True, blank=True, help_text="תאריך סיום לזמינות החניה")
@@ -58,19 +59,14 @@ class Booking(models.Model):
     ]
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     parking_space = models.ForeignKey(ParkingSpace, on_delete=models.CASCADE, related_name='bookings')
-
+    rating = models.PositiveSmallIntegerField(null=True, blank=True)
+    rating_comment = models.TextField(null=True, blank=True)
+    rated_at = models.DateTimeField(null=True, blank=True)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
 
     status = models.CharField(max_length=20,choices=STATUS_CHOICES, default='pending')
 
-    def get_status(self):
-        if self.status == 'pending':
-            if self.end_time < timezone.now():
-                return 'הסתיים'
-            elif self.start_time > timezone.now():
-                return 'ממתין לאישור'
-        return self.status
 
     def clean(self):
         super().clean()
@@ -79,40 +75,42 @@ class Booking(models.Model):
 
         if self.start_time >= self.end_time:
             raise ValidationError("זמן ההתחלה חייב להיות לפני זמן הסיום.")
-
         try:
             if self.parking_space and self.buyer:
-                if timezone.now() > self.end_time or timezone.now() > self.start_time:
-                    raise ValidationError("לא ניתן להזמין חניה לזמן שעבר.")
 
-                if self.parking_space.bookings.filter(
-                    status__in=['pending', 'approved'],start_time__lt=self.end_time,end_time__gt=self.start_time).exclude(id=self.id).exists():
+                if not self.pk:
+                    if timezone.now() > self.end_time or timezone.now() > self.start_time:
+                        raise ValidationError("לא ניתן להזמין חניה לזמן שעבר.")
+
+                    parking=self.parking_space
+
+                    if parking.start_date and self.start_time.date() < parking.start_date:
+                        raise ValidationError(f"החניה זמינה החל מ-{parking.start_date}")
+
+                    if parking.end_date and self.end_time.date() > parking.end_date:
+                        raise ValidationError(f"החניה זמינה עד {parking.end_date}")
+
+                    if parking.available_from and parking.available_to:
+                        if self.start_time.time() < parking.available_from or self.end_time.time() > parking.available_to:
+                            raise ValidationError(f'החנייה זמינה רק בין השעות {parking.available_from.strftime("%H:%M")} ל-{parking.available_to.strftime("%H:%M")}.')
+
+                    available_days = {
+                        0: parking.available_mon,
+                        1: parking.available_tue,
+                        2: parking.available_wed,
+                        3: parking.available_thu,
+                        4: parking.available_fri,
+                        5: parking.available_sat,
+                        6: parking.available_sun,
+                    }
+
+                    if not available_days[self.start_time.weekday()] or not available_days[self.end_time.weekday()]:
+                        raise ValidationError(f"החניה לא זמינה בימי {self.start_time.strftime('%A')}")
+
+                if self.parking_space.bookings.filter(status__in=['pending', 'approved'], start_time__lt=self.end_time,
+                                                      end_time__gt=self.start_time).exclude(id=self.id).exists():
                     raise ValidationError(" החניה כבר הוזמנה לתקופה זו. אנא בחר זמן אחר.")
 
-                parking=self.parking_space
-
-                if parking.start_date and self.start_time.date() < parking.start_date:
-                    raise ValidationError(f"החניה זמינה החל מ-{parking.start_date}")
-
-                if parking.end_date and self.end_time.date() > parking.end_date:
-                    raise ValidationError(f"החניה זמינה עד {parking.end_date}")
-
-                if parking.available_from and parking.available_to:
-                    if self.start_time.time() < parking.available_from or self.end_time.time() > parking.available_to:
-                        raise ValidationError(f'החנייה זמינה רק בין השעות {parking.available_from.strftime("%H:%M")} ל-{parking.available_to.strftime("%H:%M")}.')
-
-                available_days = {
-                    0: parking.available_mon,
-                    1: parking.available_tue,
-                    2: parking.available_wed,
-                    3: parking.available_thu,
-                    4: parking.available_fri,
-                    5: parking.available_sat,
-                    6: parking.available_sun,
-                }
-
-                if not available_days[self.start_time.weekday()] or not available_days[self.end_time.weekday()]:
-                    raise ValidationError(f"החניה לא זמינה בימי {self.start_time.strftime('%A')}")
         except (ParkingSpace.DoesNotExist, User.DoesNotExist):
             pass
     def __str__(self):
@@ -129,6 +127,24 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} Profile"
+
+class Report(models.Model):
+    REASON_CHOICES = [
+        ('fake', 'חניה לא קיימת'),
+        ('not_owner','החניה לא בבעלות המפרסם'),
+        ('inaccurate_info','מידע לא מדויק'),
+        ('scam', 'חשד להונאה'),
+        ('other', 'אחר'),
+    ]
+    parking_space = models.ForeignKey(ParkingSpace, on_delete=models.CASCADE, related_name='reports')
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='filed_reports')
+    reason = models.CharField(max_length=20, choices=REASON_CHOICES,verbose_name='סיבת הדיווח')
+    description = models.TextField(blank=True, null=True,verbose_name='תיאור נוסף (אופציונלי)')
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_resolved = models.BooleanField(default=False,verbose_name='טופל')
+
+    def __str__(self):
+        return f"דיווח על חניה {self.parking_space.id} מאת {self.reporter.username}"
 
 
 

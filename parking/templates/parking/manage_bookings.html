@@ -30,13 +30,15 @@
                         <td>{{ booking.end_time|date:"d/m/Y H:i" }}</td>
                         <td>{{ booking.get_status_display }}</td>
                         <td>
-                            {% if booking.status != 'approved' and booking.status != 'canceled' %}
+                            {% if booking.status == 'pending' %}
                                 <a href="{% url 'booking_confirmation' booking.id %}" class="btn btn-sm btn-success">אשר</a>
                                 <a href="{% url 'booking_rejection' booking.id %}" class="btn btn-sm btn-danger">דחה</a>
                             {% elif booking.status == 'approved' %}
                                 <span class="text-success">הזמנה מאושרת</span>
                             {% elif booking.status == 'canceled' %}
                                 <span class="text-danger">הזמנה מבוטלת</span>
+                            {% elif booking.status == 'completed' %}
+                                <span class="text-secondary">הזמנה הושלמה</span>
                             {% endif %}
                         </td>
                     </tr>

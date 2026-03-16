@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}דיווח על חניה{% endblock %} {% block content %}
+<div class="report-container">
+    <h2>דיווח על חניה</h2>
+    <p>אתה מדווח על החניה במיקום: <strong>{{ parking.address }} , {{ parking.city }}</strong></p>
+
+    <form method="POST" novalidate>
+        {% csrf_token %}
+
+        <div class="form-group mb-3">
+            <label for="{{ form.reason.id_for_label }}">
+                {{ form.reason.label }}
+            </label>
+            {{ form.reason }}
+            
+            {% if form.reason.errors %}
+                <div class="text-danger error-text">
+                    {{ form.reason.errors.0 }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group mb-3">
+            <label for="{{ form.description.id_for_label }}">
+                {{ form.description.label }}
+            </label>
+            {{ form.description }}
+            
+            {% if form.description.errors %}
+                <div class="text-danger error-text">
+                    {{ form.description.errors.0 }}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-danger">
+                שלח דיווח
+            </button>
+            <a href="javascript:history.back()" class="btn btn-secondary">
+                ביטול
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -30,7 +30,6 @@
 <div id="main-map"></div>
 
 <script>
-    // הגדרת המפה
     var map = L.map('main-map').setView([31.989, 34.773], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -39,7 +38,6 @@
     var markerGroup = new L.featureGroup();
     var hasMarkers = false;
 
-    // הדרך הבטוחה ביותר: הוספת כל חנייה בנפרד בתוך הלולאה של דג'נגו
     {% for p in parkings %}
         {% if p.lat and p.lon %}
             {% localize off %}
@@ -50,19 +48,39 @@
                 var address = "{{ p.address|escapejs }}";
                 var price = "{{ p.price_per_hour }}";
                 var bookUrl = "{% url 'book_parking' p.id %}";
+                var rawRating = "{{ p.avg_rating }}";
+                console.log("Adding marker for: " + name + " | Raw Rating: " + rawRating);
 
-                console.log("Adding marker for: " + name);
+                var displayRating = rawRating
+                var parsedRating = parseFloat(rawRating);
+                if (!isNaN(parsedRating) && parsedRating > 0) {
+                    var numRating = Math.round(parsedRating);
+                    var starsHtml = "";
 
+                    for (var i = 1; i <= 5; i++) {
+                        if (i <= numRating) {
+                            starsHtml += "<span style='color: #ffc107; font-size: 16px;'>★</span>";
+                        } else {
+                            starsHtml += "<span style='color: #d3d3d3; font-size: 16px;'>★</span>";
+                        }
+                    }
+                    displayRating = starsHtml + " <span style='font-size: 12px;'>(" + parsedRating.toFixed(1) + ")</span>";
+                }
+                else {
+                    displayRating = "<span style='color: gray; font-style: italic;'>טרם דורג</span>";
+                }
                 var marker = L.marker([lat, lon])
                     .bindPopup(
                         '<div style="text-align: right; direction: rtl; font-family: Arial;">' +
                         '<h3 style="margin: 0 0 5px 0;">' + name + '</h3>' +
                         '<p style="margin: 0 0 3px 0;"><b>כתובת:</b> ' + address + '</p>' +
+                        '<p style="margin: 0 0 3px 0;"><b>דירוג:</b> ' + displayRating + '</p>' +
                         '<p style="margin: 0 0 10px 0;"><b>מחיר:</b> ' + price + ' ש"ח לשעה</p>' +
                         '<a href="' + bookUrl + '" ' +
                         'style="display: block; background: #1877f2; color: white; text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; font-weight: bold;">' +
                         'להזמנה מהירה</a></div>'
                     );
+
                 markerGroup.addLayer(marker);
                 hasMarkers = true;
             })();

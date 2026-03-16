@@ -5,7 +5,7 @@ import requests
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from parking.models import Booking, ParkingSpace, Profile
+from parking.models import Booking, ParkingSpace, Profile, Report
 
 
 class BookingForm(forms.ModelForm):
@@ -33,7 +33,7 @@ class BookingForm(forms.ModelForm):
 class ParkingSpaceForm(forms.ModelForm):
     class Meta:
         model = ParkingSpace
-        fields = ['name', 'city', 'address', 'price_per_hour', 'instructions', 'is_active' , 'available_from','available_to', 'available_sun', 'available_mon', 'available_tue', 'available_wed', 'available_thu', 'available_fri', 'available_sat','start_date', 'end_date']
+        fields = ['name', 'city', 'address', 'price_per_hour', 'instructions', 'is_active' ,'legal_declaration', 'available_from','available_to', 'available_sun', 'available_mon', 'available_tue', 'available_wed', 'available_thu', 'available_fri', 'available_sat','start_date', 'end_date']
         widgets = {
             'instructions': forms.Textarea(attrs={'rows': 3,'class': 'form-control'}),
             'available_from': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
@@ -43,6 +43,11 @@ class ParkingSpaceForm(forms.ModelForm):
             'lat': forms.HiddenInput(),
             'lon': forms.HiddenInput(),
         }
+    def clean_legal_declaration(self):
+        legal_declaration = self.cleaned_data.get('legal_declaration')
+        if not legal_declaration:
+            raise ValidationError('עליך לאשר את ההצהרה המשפטית כדי להוסיף חניה למערכת.')
+        return legal_declaration
 
 class BookingStatusForm(forms.ModelForm):
     class Meta:
@@ -65,8 +70,6 @@ class UserUpdateForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ['first_name','last_name', 'email']
-
-
 
 class ProfileUpdateForm(forms.ModelForm):
     class Meta:
@@ -125,3 +128,26 @@ class ProfileUpdateForm(forms.ModelForm):
                 return plate
 
         raise ValidationError('מספר רכב לא נמצא במאגר הרכב הישראלי. אנא בדוק את מספר הרכב ונסה שוב.')
+
+class ReportForm(forms.ModelForm):
+    class Meta:
+        model = Report
+        fields = ['reason' , 'description']
+        widgets = {
+            'reason': forms.Select(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'פרט קצת יותר על הבעיה...'}),
+        }
+
+class BookingRatingForm(forms.ModelForm):
+    class Meta:
+        model = Booking
+        fields = ['rating', 'rating_comment']
+        widgets = {
+            'rating': forms.NumberInput(attrs={"min": 1, "max": 5, "class": "form-control"}),
+            'rating_comment': forms.Textarea(attrs={"rows": 2, "class": "form-control"}),
+        }
+    def clean_rating(self):
+        rating = self.cleaned_data.get('rating')
+        if rating is not None and (rating < 1 or rating > 5):
+            raise ValidationError('הדירוג חייב להיות בין 1 ל-5.')
+        return rating

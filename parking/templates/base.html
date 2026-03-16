@@ -88,6 +88,30 @@
             font-weight: 500;
             margin-left: 10px;
         }
+
+        .star-rating {
+            display: inline-flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+        }
+
+        .star-rating input[type="radio"] {
+            display: none;
+        }
+
+        .star-rating label {
+            font-size: 40px; /* גודל הכוכבים */
+            color: #d3d3d3; /* צבע אפור בהיר */
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .star-rating label:hover,
+        .star-rating label:hover ~ label,
+        .star-rating input[type="radio"]:checked ~ label {
+            color: #ffc107; /* צהוב-זהב יפה */
+        }
+
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
 </head>
@@ -126,6 +150,15 @@
 </nav>
 
 <div class="content">
+    {% if messages %}
+    <div class="messages-container" style="max-width: 600px; margin: 10px auto;">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}" style="padding: 10px; border-radius: 5px; background-color: #d4edda; color: #155724; text-align: center;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
     {% block content %}
     {% endblock %}
 </div>

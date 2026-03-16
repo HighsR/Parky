@@ -189,7 +189,21 @@
             {{ form.lat }}
             {{ form.lon }}
         </div>
-
+        <div class="checkbox-group">
+            {{ form.legal_declaration }}
+            <label for="{{ form.legal_declaration.id_for_label }}">
+                {{ form.legal_declaration.label }}
+            </label>
+            {% if form.legal_declaration.errors %}
+                <div style="color: red; font-size: 12px;">
+                    {{ form.legal_declaration.errors.0 }}
+                </div>
+            {% else %}
+                <div style="color: gray; font-size: 11px; margin-top: 2px;">
+                    {{ form.legal_declaration.help_text }}
+                </div>
+            {% endif %}
+        </div>
         <div style="display: flex; gap: 10px; margin-top: 30px;">
             <button type="submit" style="flex: 2; padding: 14px; background-color: #1877f2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
                 {% if edit_mode %}שמור שינויים{% else %}פרסם חנייה במפה{% endif %}
@@ -206,11 +220,11 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
     var marker;
-    var initialLat = document.getElementById('{{ form.lat.id_for_label }}').value;
-    var initialLon = document.getElementById('{{ form.lon.id_for_label }}').value;
+    var latInput = document.getElementById('{{ form.lat.id_for_label }}');
+    var lonInput = document.getElementById('{{ form.lon.id_for_label }}');
     
-    if (initialLat && initialLon) {
-        var latlng = L.latLng(initialLat, initialLon);
+    if (latInput && lonInput && latInput.value && lonInput.value) {
+        var latlng = L.latLng(latInput.value, lonInput.value);
         marker = L.marker(latlng).addTo(map);
         map.setView(latlng, 15);
     }
@@ -219,8 +233,12 @@
         if (marker) marker.setLatLng(e.latlng);
         else marker = L.marker(e.latlng).addTo(map);
 
-        document.getElementById('{{ form.lat.id_for_label }}').value = e.latlng.lat.toFixed(6);
-        document.getElementById('{{ form.lon.id_for_label }}').value = e.latlng.lng.toFixed(6);
+        if (latInput && lonInput) {
+            latInput.value = e.latlng.lat.toFixed(6);
+            lonInput.value = e.latlng.lng.toFixed(6);
+        } else {
+            console.error("לא מצאתי את שדות ה-lat/lon בטופס!");
+        }
     });
 </script>
 {% endblock %}
