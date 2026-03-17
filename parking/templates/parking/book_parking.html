@@ -41,8 +41,8 @@
 
         <p style="margin: 0 0 5px 0;">
             <strong>שעות פעילות:</strong>
-            מ-{{ parking_space.avaliable_from|time:"H:i"|default:"00:00" }}
-        עד {{ parking_space.avaliable_to|time:"H:i"|default:"23:59" }}
+            מ-{{ parking_space.available_from|time:"H:i"|default:"00:00" }}
+            עד {{ parking_space.available_to|time:"H:i"|default:"23:59" }}
         </p>
 
         {% if parking_space.start_date and parking_space.end_date %}

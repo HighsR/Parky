@@ -6,23 +6,6 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
-
-            {% if messages %}
-                {% for message in messages %}
-                    {% if message.tags == 'error' %}
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="סגור"></button>
-                        </div>
-                    {% else %}
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="סגור"></button>
-                    </div>
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
-
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-primary text-white text-center py-3">
                     <h3 class="mb-0">הגדרות פרופיל</h3>

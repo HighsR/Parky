@@ -4,7 +4,6 @@
 
 {% block content %}
 <style>
-    /* עיצובים שספציפיים רק לטבלה של ההזמנות */
     .container { max-width: 900px; margin: 30px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
     table { width: 100%; border-collapse: collapse; margin-top: 20px; }
     th, td { padding: 12px; text-align: right; border-bottom: 1px solid #ddd; }
@@ -35,9 +34,15 @@
                     <td>{{ b.start_time|date:"d/m/Y H:i" }}</td>
                     <td>{{ b.end_time|date:"d/m/Y H:i" }}</td>
                     <td>
-                        <span class="status-{{ b.status }}">
-                            {{ b.get_status_display }}
-                        </span>
+                        <span class="status-{{ b.status }}">{{ b.get_status_display }}</span>
+
+                        {% if b.status == 'completed' %}
+                            {% if b.rating %}
+                                <div>דירוג: {{ b.rating }}/5</div>
+                            {% else %}
+                                <a href="{% url 'rate_booking' b.id %}?next={{ request.path }}" class="btn btn-sm btn-primary">דרג חניה</a>
+                            {% endif %}
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

@@ -97,6 +97,7 @@
                         <p class="info-row"><strong>כתובת:</strong> {{ p.address }}, {{ p.city }}</p>
                         <p class="info-row"><strong>מחיר:</strong> {{ p.price_per_hour }} ש"ח לשעה</p>
                         <p class="info-row"><strong>סטטוס:</strong> {% if p.is_active %}✅ פעיל{% else %}❌ לא פעיל{% endif %}</p>
+                        <p class="info-row"><strong>דירוג:</strong> {{ p.avg_rating|default_if_none:"טרם דורג" }}</p>
                     </div>
 
                     <div class="actions">
