@@ -2,12 +2,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Avg
+from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, logout
 from django.utils import timezone
 from .models import ParkingSpace, Booking, Profile, Report
 from .forms import BookingForm, ParkingSpaceForm, UserUpdateForm, ProfileUpdateForm, ReportForm, BookingRatingForm
+from .utils import send_user_notification
 
 
 def map_view(request):
@@ -19,6 +21,7 @@ def mark_completed_bookings(bookings=None):
     if bookings is None:
          bookings = Booking.objects.all()
     return bookings.filter(status__in=['pending','approved'],end_time__lt=timezone.now()).update(status='completed')
+
 
 @login_required
 def book_parking(request, parking_id):
@@ -40,6 +43,12 @@ def book_parking(request, parking_id):
             try:
                 booking.clean()
                 booking.save()
+                owner_id = booking.parking_space.owner.id
+                start_str = booking.start_time.strftime('%H:%M ב-%d/%m')
+                end_str = booking.end_time.strftime('%H:%M')
+
+                message = f"חנייה ב{booking.parking_space.address} הוזמנה מ-{start_str} עד {end_str}."
+                send_user_notification(owner_id, message)
                 messages.success(request, 'החנייה הוזמנה בהצלחה!')
                 return render(request, 'parking/booking_success.html', {'booking': booking})
             except ValidationError as e:
