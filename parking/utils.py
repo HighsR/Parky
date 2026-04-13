@@ -1,7 +1,7 @@
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-def send_user_notification(user_id, message):
+def send_user_notification(user_id, message, title="התראה"):
 
     channel_layer = get_channel_layer()
     group_name = f'user_{user_id}'
@@ -11,5 +11,6 @@ def send_user_notification(user_id, message):
         {
             'type': 'send_notification',
             'message': message,
+            'title': title,
         }
     )

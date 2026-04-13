@@ -196,19 +196,18 @@
     const endpoint = wsStart + window.location.host + "/ws/notifications/";
     const notificationSocket = new WebSocket(endpoint);
 
-    function showToast(message) {
+    function showToast(message, title) {
         const container = document.getElementById('toast-container');
         if (!container) return;
 
         const toast = document.createElement('div');
         toast.className = 'toast-notification';
         toast.innerHTML = `
-            <div style="font-size: 24px;">🚗</div>
-            <div style="text-align: right;">
-                <strong style="display: block; font-size: 1.1em; margin-bottom: 3px;">הזמנה חדשה!</strong>
-                <div style="font-size: 0.95em; line-height: 1.4;">${message}</div>
-            </div>
-        `;
+        <div style="font-size: 28px; margin-left: 15px;">🚗</div>
+        <div style="flex-grow: 1;">
+            <div style="font-weight: bold; font-size: 1.1em;">${title}</div> <div style="font-size: 0.95em;">${message}</div>
+        </div>
+    `;
 
         container.appendChild(toast);
 
@@ -226,7 +225,7 @@
 
     notificationSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
-        showToast(data.message);
+        showToast(data.message, data.title);
     };
 
     notificationSocket.onclose = function(e) {

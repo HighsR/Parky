@@ -1,7 +1,9 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db.models import Avg
+from django.db.models import Avg, Q
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.forms import UserCreationForm
@@ -28,6 +30,9 @@ def book_parking(request, parking_id):
     parking_space = get_object_or_404(ParkingSpace, id=parking_id)
     profile,created = Profile.objects.get_or_create(user=request.user)
     if request.method == 'POST':
+        if parking_space.owner==request.user:
+            messages.error(request,'לא ניתן להזמין את החניות שלך')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
         form=BookingForm(request.POST)
         if not profile.phone_number:
             messages.error(request,'בשביל לבצע הזמנה, עליך להוסיף מספר טלפון בפרופיל שלך.')
@@ -48,7 +53,7 @@ def book_parking(request, parking_id):
                 end_str = booking.end_time.strftime('%H:%M')
 
                 message = f"חנייה ב{booking.parking_space.address} הוזמנה מ-{start_str} עד {end_str}."
-                send_user_notification(owner_id, message)
+                send_user_notification(owner_id, message, title="הזמנה חדשה!")
                 messages.success(request, 'החנייה הוזמנה בהצלחה!')
                 return render(request, 'parking/booking_success.html', {'booking': booking})
             except ValidationError as e:
@@ -157,11 +162,21 @@ def booking_confirmation(request, booking_id):
 
 @login_required
 def booking_rejection(request, booking_id):
-    booking = get_object_or_404(Booking, id=booking_id, parking_space__owner=request.user)
+    booking = get_object_or_404(Booking, Q(parking_space__owner=request.user) | Q(buyer=request.user), id=booking_id)
 
     if request.method == 'POST':
+        if timezone.now() + timedelta(hours=2) > booking.start_time:
+            messages.error(request, 'זמן הביטול להזמנה זו חלף')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
         booking.status = 'canceled'
         booking.save()
+        if booking.parking_space.owner == request.user:
+            target_id = booking.buyer.id
+            message = "בעל החניה ביטל את ההזמנה שלך"
+        else:
+            target_id = booking.parking_space.owner.id
+            message = "הקונה ביטל את ההזמנה"
+        send_user_notification(target_id, message, title="הזמנה בוטלה!")
         messages.success(request, 'הזמנה בוטלה!')
         return redirect('manage_seller_bookings')
 

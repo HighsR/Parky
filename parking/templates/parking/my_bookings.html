@@ -35,6 +35,9 @@
                     <td>{{ b.end_time|date:"d/m/Y H:i" }}</td>
                     <td>
                         <span class="status-{{ b.status }}">{{ b.get_status_display }}</span>
+                        {% if b.status != 'completed' and b.status != 'canceled' %}
+                            <a href="{% url 'booking_rejection' b.id %}?next={{ request.path }}" class="btn btn-sm btn-danger" style="margin-left: 10px;">בטל</a>
+                        {% endif %}
 
                         {% if b.status == 'completed' %}
                             {% if b.rating %}
