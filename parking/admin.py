@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import ParkingSpace, Booking, Report
+from .models import ParkingSpace, Booking, Report, Notification
 
 
 @admin.register(ParkingSpace)
@@ -22,3 +22,9 @@ class ReportAdmin(admin.ModelAdmin):
     list_filter = ('is_resolved','reason')
     search_fields = ('description', 'reporter__username')
     readonly_fields = ('created_at', 'reason','reporter')
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('message_title', 'receiver', 'notification_type', 'is_read', 'created_at')
+    list_filter = ('is_read' ,'notification_type', 'created_at')
+    search_fields = ('message_title', 'message_content', 'receiver__username')

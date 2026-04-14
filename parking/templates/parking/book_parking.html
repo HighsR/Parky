@@ -11,11 +11,13 @@
 
     .form-group { margin-bottom: 20px; }
     .form-group label { display: block; font-weight: bold; margin-bottom: 8px; color: #333; }
-    .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 16px; direction: ltr; text-align: right; }
+    .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-family: inherit; font-size: 16px; direction: ltr; text-align: right; background-color: #fff !important; }
 
     .btn-submit { background-color: #28a745; color: white; padding: 14px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; transition: 0.3s; }
     .btn-submit:hover { background-color: #218838; }
     .cancel-link { display: block; text-align: center; margin-top: 15px; text-decoration: none; color: #65676b; font-weight: bold; }
+
+    .flatpickr-calendar { direction: rtl; }
 </style>
 
 <div class="booking-container">
@@ -91,14 +93,32 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        var dateInput = document.getElementById("{{ form.booking_date.id_for_label }}");
+        flatpickr("#{{ form.booking_date.id_for_label }}", {
+            locale: "he",
+            altInput: true,
+            altFormat: "j F, Y",
+            dateFormat: "Y-m-d",
+            minDate: "today",
+            {% if parking_space.start_date and parking_space.end_date %}
+            minDate: "{{ parking_space.start_date|date:'Y-m-d' }}",
+            maxDate: "{{ parking_space.end_date|date:'Y-m-d' }}",
+            {% endif %}
+        });
 
-        if (dateInput) {
-            var today = new Date();
-            today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
-            var todayString = today.toISOString().split('T')[0];
-            dateInput.setAttribute("min", todayString);
-        }
+        const commonTimeConfig = {
+            locale: "he",
+            enableTime: true,
+            noCalendar: true,
+            altInput: true,
+            altFormat: "H:i",
+            dateFormat: "H:i",
+            time_24hr: true,
+            minTime: "{{ parking_space.available_from|time:'H:i'|default:'00:00' }}",
+            maxTime: "{{ parking_space.available_to|time:'H:i'|default:'23:59' }}"
+        };
+
+        flatpickr("#{{ form.start_hour.id_for_label }}", commonTimeConfig);
+        flatpickr("#{{ form.end_hour.id_for_label }}", commonTimeConfig);
     });
 </script>
 {% endblock %}

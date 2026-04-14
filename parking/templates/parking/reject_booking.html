@@ -9,6 +9,22 @@
         <div class="col-md-6">
             <div class="card shadow">
                 <div class="card-body text-center">
+                    {% if user == booking.buyer %}
+                    <h2 class="mb-4">ביטול הזמנה</h2>
+                    <p>האם אתה בטוח שברצונך לבטל את ההזמנה?</p>
+                    <ul class="list-unstyled text-start mb-4">
+                        <li><strong>חנייה:</strong> {{ booking.parking_space.name }}</li>
+                        <li><strong>זמן התחלה:</strong> {{ booking.start_time|date:"d/m/Y H:i" }}</li>
+                        <li><strong>זמן סיום:</strong> {{ booking.end_time|date:"d/m/Y H:i" }}</li>
+                    </ul>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-center gap-3">
+                            <button type="submit" class="btn btn-danger">בטל הזמנה</button>
+                            <a href="{% url 'my_bookings' %}" class="btn btn-secondary">חזור</a>
+                        </div>
+                    </form>
+                    {% else %}
                     <h2 class="mb-4">דחיית הזמנה</h2>
                     <p>האם אתה בטוח שברצונך לדחות את ההזמנה?</p>
                     <ul class="list-unstyled text-start mb-4">
@@ -21,9 +37,10 @@
                         {% csrf_token %}
                         <div class="d-flex justify-content-center gap-3">
                             <button type="submit" class="btn btn-danger">דחה הזמנה</button>
-                            <a href="{% url 'manage_seller_bookings' %}" class="btn btn-secondary">ביטול</a>
+                            <a href="{% url 'manage_seller_bookings' %}" class="btn btn-secondary">חזור</a>
                         </div>
                     </form>
+                    {% endif %}
                 </div>
             </div>
         </div>

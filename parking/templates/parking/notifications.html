@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}ההתראות שלי - Parky{% endblock %}
+
+{% block content %}
+<style>
+    .notifications-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        direction: rtl;
+    }
+    .notification-card {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        text-decoration: none;
+        color: #333;
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .notification-card:hover {
+        background-color: #f8f9fa;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+        transform: translateY(-1px);
+    }
+    .notification-card.unread {
+        background-color: #e8f0fe;
+        border-right: 5px solid #1a73e8;
+    }
+    .notification-card.unread .notification-title {
+        font-weight: 800;
+    }
+    .notification-icon {
+        font-size: 28px;
+        margin-left: 20px;
+        min-width: 40px;
+        text-align: center;
+    }
+    .notification-content {
+        flex-grow: 1;
+    }
+    .notification-title {
+        margin: 0 0 5px 0;
+        font-size: 17px;
+        color: #202124;
+    }
+    .notification-text {
+        margin: 0 0 8px 0;
+        font-size: 14.5px;
+        color: #5f6368;
+    }
+    .notification-time {
+        font-size: 12px;
+        color: #888;
+        display: block;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #777;
+        background: #f9f9f9;
+        border-radius: 12px;
+        border: 1px dashed #ccc;
+    }
+</style>
+
+<div class="notifications-container">
+    <h2 style="margin-bottom: 25px; color: #202124;">ההתראות שלי</h2>
+
+    <div class="notifications-list">
+        {% for note in notifications %}
+            <div class="notification-card {% if not note.is_read %}unread{% endif %}" style="justify-content: space-between;">
+
+                <a href="{{ note.target_url }}" style="display: flex; flex-grow: 1; align-items: center; text-decoration: none; color: inherit;">
+                    <div class="notification-icon">
+                        {% if note.notification_type == 'report' %}🚩
+                        {% elif note.notification_type == 'order_canceled' %}❌
+                        {% elif note.notification_type == 'order_confirmed' %}✅
+                        {% elif note.notification_type == 'new_booking' %}🚗
+                        {% else %}🔔{% endif %}
+                    </div>
+
+                    <div class="notification-content">
+                        <h4 class="notification-title">{{ note.message_title }}</h4>
+                        <p class="notification-text">{{ note.message_content }}</p>
+                        <span class="notification-time">{{ note.created_at|date:"d/m/Y - H:i" }}</span>
+                    </div>
+                </a>
+
+                <form action="{% url 'delete_notification' note.id %}" method="post" style="margin: 0; padding-right: 15px; border-right: 1px solid #eee;" onsubmit="return confirm('האם אתה בטוח שברצונך למחוק התראה זו?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        מחק
+                    </button>
+                </form>
+
+            </div>
+
+        {% empty %}
+            <div class="empty-state">
+                <div style="font-size: 48px; margin-bottom: 15px;">📭</div>
+                <h3>אין לך התראות כרגע</h3>
+                <p>כשיקרה משהו מעניין במערכת, נעדכן אותך כאן.</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

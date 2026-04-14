@@ -1,13 +1,19 @@
+from datetime import timedelta
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
-from django.db.models import Avg
+from django.db.models import Avg, Q
+from django.dispatch import receiver
+from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, logout
+from django.urls import reverse
 from django.utils import timezone
-from .models import ParkingSpace, Booking, Profile, Report
+from .models import ParkingSpace, Booking, Profile, Report, Notification
 from .forms import BookingForm, ParkingSpaceForm, UserUpdateForm, ProfileUpdateForm, ReportForm, BookingRatingForm
+from .utils import send_user_notification
 
 
 def map_view(request):
@@ -20,18 +26,26 @@ def mark_completed_bookings(bookings=None):
          bookings = Booking.objects.all()
     return bookings.filter(status__in=['pending','approved'],end_time__lt=timezone.now()).update(status='completed')
 
+
 @login_required
 def book_parking(request, parking_id):
     parking_space = get_object_or_404(ParkingSpace, id=parking_id)
     profile,created = Profile.objects.get_or_create(user=request.user)
     if request.method == 'POST':
+        if parking_space.owner==request.user:
+            messages.error(request,'לא ניתן להזמין את החניות שלך')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
         form=BookingForm(request.POST)
+
         if not profile.phone_number:
             messages.error(request,'בשביל לבצע הזמנה, עליך להוסיף מספר טלפון בפרופיל שלך.')
             return redirect('profile')
+
         if not profile.license_plate:
             messages.error(request, 'בשביל לבצע בזמנה, עליך להוסיף מספר רכב בפרופיל שלך.')
             return redirect('profile')
+
         if form.is_valid():
             booking=form.save(commit=False)
             booking.buyer=request.user
@@ -40,6 +54,26 @@ def book_parking(request, parking_id):
             try:
                 booking.clean()
                 booking.save()
+                start_str = booking.start_time.strftime('%H:%M ב-%d/%m')
+                end_str = booking.end_time.strftime('%H:%M')
+
+                message = f"חנייה ב{booking.parking_space.address} הוזמנה מ-{start_str} עד {end_str}."
+                new_notification = Notification.objects.create(
+                    receiver=booking.parking_space.owner,
+                    message_title="הזמנה חדשה! 🎉",
+                    message_content=message,
+                    notification_type="new_booking",
+                    target_url=reverse('manage_seller_bookings')
+                )
+
+                send_user_notification(
+                    user_id=booking.parking_space.owner.id,
+                    message=new_notification.message_content,
+                    title=new_notification.message_title,
+                    notif_type=new_notification.notification_type,
+                    target_url=new_notification.target_url
+                )
+
                 messages.success(request, 'החנייה הוזמנה בהצלחה!')
                 return render(request, 'parking/booking_success.html', {'booking': booking})
             except ValidationError as e:
@@ -60,7 +94,6 @@ def my_bookings(request):
 def register(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
-
         if form.is_valid():
             user = form.save()
             login(request, user)
@@ -131,8 +164,14 @@ def manage_seller_bookings(request):
     user_listings = ParkingSpace.objects.filter(owner=request.user, is_active=True)
     seller_orders = Booking.objects.filter(parking_space__in=user_listings)
     mark_completed_bookings(seller_orders)
-    bookings = seller_orders.order_by('-start_time')
-    return render(request, 'parking/manage_bookings.html', {'bookings': bookings })
+    active_bookings = seller_orders.exclude(status='canceled').order_by('-start_time')
+    canceled_bookings = seller_orders.filter(status='canceled').order_by('-start_time')
+
+    context ={
+        'active_bookings': active_bookings,
+        'canceled_bookings': canceled_bookings
+    }
+    return render(request, 'parking/manage_bookings.html', context)
 
 @login_required
 def booking_confirmation(request, booking_id):
@@ -141,6 +180,23 @@ def booking_confirmation(request, booking_id):
     if request.method == 'POST':
         booking.status = 'approved'
         booking.save()
+
+        new_notification = Notification.objects.create(
+            receiver=booking.buyer,
+            message_title="הזמנה אושרה! ✅",
+            message_content=f"בעל החנייה אישר את ההזמנה שלך ב-{booking.parking_space.address}.",
+            notification_type="order_confirmed",
+            target_url=reverse("my_bookings")
+        )
+
+        send_user_notification(
+            user_id=booking.buyer.id,
+            message=new_notification.message_content,
+            title=new_notification.message_title,
+            notif_type=new_notification.notification_type,
+            target_url=new_notification.target_url
+        )
+
         messages.success(request, 'הזמנה אושרה!')
         return redirect('manage_seller_bookings')
 
@@ -148,13 +204,46 @@ def booking_confirmation(request, booking_id):
 
 @login_required
 def booking_rejection(request, booking_id):
-    booking = get_object_or_404(Booking, id=booking_id, parking_space__owner=request.user)
+    booking = get_object_or_404(Booking, Q(parking_space__owner=request.user) | Q(buyer=request.user), id=booking_id)
 
     if request.method == 'POST':
+        if booking.status == 'canceled':
+            messages.error(request, 'הזמנה זו כבר בוטלה')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
+        if timezone.now() + timedelta(hours=2) > booking.start_time:
+            messages.error(request, 'זמן הביטול להזמנה זו חלף')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
         booking.status = 'canceled'
         booking.save()
+        if booking.parking_space.owner == request.user:
+            target_user = booking.buyer
+            message = f"בעל החנייה ביטל את ההזמנה שלך ב-{booking.parking_space.name}."
+            target_url = reverse("my_bookings")
+            redirect_url = 'manage_seller_bookings'
+        else:
+            target_user = booking.parking_space.owner
+            message = f"הקונה ביטל את ההזמנה שלו ב-{booking.parking_space.name}."
+            target_url =reverse("manage_seller_bookings")
+            redirect_url = 'my_bookings'
+
+        new_notification = Notification.objects.create(
+            receiver=target_user,
+            message_title="הזמנה בוטלה!",
+            message_content=message,
+            notification_type="order_canceled",
+            target_url=target_url
+        )
+        send_user_notification(
+            user_id=target_user.id,
+            message=new_notification.message_content,
+            title=new_notification.message_title,
+            notif_type=new_notification.notification_type,
+            target_url=new_notification.target_url
+        )
         messages.success(request, 'הזמנה בוטלה!')
-        return redirect('manage_seller_bookings')
+        return redirect(redirect_url)
 
     return render(request, 'parking/reject_booking.html', {'booking': booking})
 
@@ -189,6 +278,10 @@ def profile_view(request):
 def report_parking_space(request,parking_id):
     parking = get_object_or_404(ParkingSpace, id=parking_id)
 
+    if parking.owner == request.user:
+        messages.error(request, "אינך יכול לדווח על חנייה שבבעלותך.")
+        return redirect('map_view')
+
     if request.method == 'POST':
         form = ReportForm(request.POST)
 
@@ -197,10 +290,26 @@ def report_parking_space(request,parking_id):
 
             report.parking_space = parking
             report.reporter = request.user
-
             report.save()
 
+            #Sending notification to the parking space owner about the report
+            if report.reason == 'inaccurate_info':
+                new_notification = Notification.objects.create(
+                    receiver=parking.owner,
+                    message_title="דיווח חדש על החנייה שלך",
+                    message_content="לקוח דיווח שהמידע על החניה עשוי להיות לא מדויק. כדאי לוודא שהתיאור מעודכן",
+                    notification_type="report",
+                    target_url=reverse('edit_parking_space', kwargs={'parking_id': parking_id})                )
+                send_user_notification(
+                    user_id=parking.owner.id,
+                    message=new_notification.message_content,
+                    title=new_notification.message_title,
+                    notif_type=new_notification.notification_type,
+                    target_url=new_notification.target_url
+                )
+
             messages.success(request, 'הדיווח נשלח בהצלחה. אנו נבדוק את העניין בהקדם האפשרי.')
+
             return redirect('map_view')
     else:
         form = ReportForm()
@@ -208,6 +317,7 @@ def report_parking_space(request,parking_id):
     context = {'parking': parking, 'form': form}
 
     return render(request, 'parking/report_parking_space.html', context)
+
 @login_required
 def rate_booking(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, buyer=request.user)
@@ -243,3 +353,24 @@ def rate_booking(request, booking_id):
         form = BookingRatingForm(instance=booking)
 
     return render(request, 'parking/rate_booking.html', {'booking': booking, 'form': form,'next_url': next_url})
+
+@login_required
+def my_notifications(request):
+    user_notifications = Notification.objects.filter(receiver=request.user)
+    unread_notifications = user_notifications.filter(is_read=False)
+    unread_notifications.update(is_read=True)
+
+    context = {
+        'notifications' : user_notifications,
+    }
+
+    return render(request, 'parking/notifications.html', context)
+
+@login_required
+def delete_notification(request, notif_id):
+    notification = get_object_or_404(Notification, id=notif_id, receiver=request.user)
+
+    if request.method == 'POST':
+        notification.delete()
+
+    return redirect('my_notifications')

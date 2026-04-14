@@ -104,8 +104,9 @@ class ProfileUpdateForm(forms.ModelForm):
         'filters': f'{{"mispar_rechev": "{plate}"}}'
         }
         try:
-            first_response=requests.get(base_url, params=params1,timeout=5)
-        except requests.RequestException:
+            first_response=requests.get(base_url, params=params1,timeout=10)
+        except requests.RequestException as e:
+            print(f"--- API CRASHED! The error is: {e} ---")
             raise ValidationError('אירעה שגיאה בעת אימות מספר הרכב. אנא נסה שוב מאוחר יותר.')
 
 

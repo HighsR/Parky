@@ -12,6 +12,7 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -19,6 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'parking.apps.ParkingConfig',
+    'channels',
     #Other apps
     "phonenumber_field",
 ]
@@ -45,6 +47,13 @@ LOGIN_URL='/accounts/login/'
 LOGIN_REDIRECT_URL='/map/'
 LOGOUT_REDIRECT_URL='/map/'
 
+ASGI_APPLICATION = 'parky_project.asgi.application'
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
 
 LANGUAGE_CODE = 'he'
 
@@ -69,6 +78,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'parking.context_processors.count_unread_notifications',
             ],
         },
     },
