@@ -28,13 +28,12 @@
         box-shadow: 0 3px 8px rgba(0,0,0,0.1);
         transform: translateY(-1px);
     }
-    /* העיצוב המיוחד להתראה חדשה שלא נקראה */
     .notification-card.unread {
-        background-color: #e8f0fe; /* רקע תכלת עדין */
-        border-right: 5px solid #1a73e8; /* פס כחול בולט בצד ימין */
+        background-color: #e8f0fe;
+        border-right: 5px solid #1a73e8;
     }
     .notification-card.unread .notification-title {
-        font-weight: 800; /* כותרת מודגשת יותר */
+        font-weight: 800;
     }
     .notification-icon {
         font-size: 28px;
@@ -75,28 +74,32 @@
 
     <div class="notifications-list">
         {% for note in notifications %}
-            <a href="{{ note.target_url }}" class="notification-card {% if not note.is_read %}unread{% endif %}">
+            <div class="notification-card {% if not note.is_read %}unread{% endif %}" style="justify-content: space-between;">
 
-                <div class="notification-icon">
-                    {% if note.notification_type == 'report' %}
-                        🚩
-                    {% elif note.notification_type == 'order_canceled' %}
-                        ❌
-                    {% elif note.notification_type == 'order_confirmed' %}
-                        ✅
-                    {% elif note.notification_type == 'new_booking' %}
-                        🚗
-                    {% else %}
-                        🔔
-                    {% endif %}
-                </div>
+                <a href="{{ note.target_url }}" style="display: flex; flex-grow: 1; align-items: center; text-decoration: none; color: inherit;">
+                    <div class="notification-icon">
+                        {% if note.notification_type == 'report' %}🚩
+                        {% elif note.notification_type == 'order_canceled' %}❌
+                        {% elif note.notification_type == 'order_confirmed' %}✅
+                        {% elif note.notification_type == 'new_booking' %}🚗
+                        {% else %}🔔{% endif %}
+                    </div>
 
-                <div class="notification-content">
-                    <h4 class="notification-title">{{ note.message_title }}</h4>
-                    <p class="notification-text">{{ note.message_content }}</p>
-                    <span class="notification-time">{{ note.created_at|date:"d/m/Y - H:i" }}</span>
-                </div>
-            </a>
+                    <div class="notification-content">
+                        <h4 class="notification-title">{{ note.message_title }}</h4>
+                        <p class="notification-text">{{ note.message_content }}</p>
+                        <span class="notification-time">{{ note.created_at|date:"d/m/Y - H:i" }}</span>
+                    </div>
+                </a>
+
+                <form action="{% url 'delete_notification' note.id %}" method="post" style="margin: 0; padding-right: 15px; border-right: 1px solid #eee;" onsubmit="return confirm('האם אתה בטוח שברצונך למחוק התראה זו?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        מחק
+                    </button>
+                </form>
+
+            </div>
 
         {% empty %}
             <div class="empty-state">

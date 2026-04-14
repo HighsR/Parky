@@ -21,4 +21,5 @@ urlpatterns = [
     path('report-parking-space/<int:parking_id>', views.report_parking_space, name='report_parking_space'),
     path('rate-booking/<int:booking_id>/', views.rate_booking, name='rate_booking'),
     path('notifications/', views.my_notifications, name='my_notifications'),
+path('delete-notification/<int:notif_id>/', views.delete_notification, name='delete_notification'),
 ]

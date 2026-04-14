@@ -164,8 +164,14 @@ def manage_seller_bookings(request):
     user_listings = ParkingSpace.objects.filter(owner=request.user, is_active=True)
     seller_orders = Booking.objects.filter(parking_space__in=user_listings)
     mark_completed_bookings(seller_orders)
-    bookings = seller_orders.order_by('-start_time')
-    return render(request, 'parking/manage_bookings.html', {'bookings': bookings })
+    active_bookings = seller_orders.exclude(status='canceled').order_by('-start_time')
+    canceled_bookings = seller_orders.filter(status='canceled').order_by('-start_time')
+
+    context ={
+        'active_bookings': active_bookings,
+        'canceled_bookings': canceled_bookings
+    }
+    return render(request, 'parking/manage_bookings.html', context)
 
 @login_required
 def booking_confirmation(request, booking_id):
@@ -201,19 +207,26 @@ def booking_rejection(request, booking_id):
     booking = get_object_or_404(Booking, Q(parking_space__owner=request.user) | Q(buyer=request.user), id=booking_id)
 
     if request.method == 'POST':
+        if booking.status == 'canceled':
+            messages.error(request, 'הזמנה זו כבר בוטלה')
+            return redirect(request.META.get('HTTP_REFERER', '/'))
+
         if timezone.now() + timedelta(hours=2) > booking.start_time:
             messages.error(request, 'זמן הביטול להזמנה זו חלף')
             return redirect(request.META.get('HTTP_REFERER', '/'))
+
         booking.status = 'canceled'
         booking.save()
         if booking.parking_space.owner == request.user:
             target_user = booking.buyer
-            message = "בעל החניה ביטל את ההזמנה שלך"
+            message = f"בעל החנייה ביטל את ההזמנה שלך ב-{booking.parking_space.name}."
             target_url = reverse("my_bookings")
+            redirect_url = 'manage_seller_bookings'
         else:
             target_user = booking.parking_space.owner
-            message = "הקונה ביטל את ההזמנה"
+            message = f"הקונה ביטל את ההזמנה שלו ב-{booking.parking_space.name}."
             target_url =reverse("manage_seller_bookings")
+            redirect_url = 'my_bookings'
 
         new_notification = Notification.objects.create(
             receiver=target_user,
@@ -230,7 +243,7 @@ def booking_rejection(request, booking_id):
             target_url=new_notification.target_url
         )
         messages.success(request, 'הזמנה בוטלה!')
-        return redirect(request.META.get('HTTP_REFERER', '/'))
+        return redirect(redirect_url)
 
     return render(request, 'parking/reject_booking.html', {'booking': booking})
 
@@ -352,3 +365,12 @@ def my_notifications(request):
     }
 
     return render(request, 'parking/notifications.html', context)
+
+@login_required
+def delete_notification(request, notif_id):
+    notification = get_object_or_404(Notification, id=notif_id, receiver=request.user)
+
+    if request.method == 'POST':
+        notification.delete()
+
+    return redirect('my_notifications')

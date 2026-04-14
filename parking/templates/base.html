@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <title>{% block title %}Parky - מצא חנייה בקלות{% endblock %}</title>
     <style>
         body {
@@ -157,6 +158,14 @@
             <a href="{% url 'my_listings' %}">החניות שלי</a>
             <a href="{% url 'my_bookings' %}">ההזמנות שלי</a>
             <a href="{% url 'manage_seller_bookings' %}">הזמנות נכנסות</a>
+
+            <a href="{% url 'my_notifications' %}" style="position: relative; padding-right: 5px;">
+                התראות
+                <span id="notification-badge" class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-danger {% if unread_count == 0 %}d-none{% endif %}" style="font-size: 0.7rem;">
+                    {{ unread_count }}
+                </span>
+            </a>
+
             <a href="{%url 'profile' %}">הפרופיל שלי</a>
 
             <span class="user-greeting">
@@ -225,7 +234,21 @@
 
     notificationSocket.onmessage = function(e) {
         const data = JSON.parse(e.data);
+
         showToast(data.message, data.title);
+
+        const badge = document.getElementById('notification-badge');
+        if (badge) {
+            let currentCount = parseInt(badge.innerText) || 0;
+            badge.innerText = currentCount + 1;
+            badge.classList.remove('d-none');
+
+            badge.style.transition = 'transform 0.2s ease-in-out';
+            badge.style.transform = 'translate(-50%, -50%) scale(1.4)';
+            setTimeout(() => {
+                badge.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 300);
+        }
     };
 
     notificationSocket.onclose = function(e) {
