@@ -42,7 +42,6 @@
         border: 1px solid #ddd;
     }
 
-    /* עיצוב אזור התזמונים */
     .schedule-section {
         background: #f8f9fa;
         padding: 20px;
@@ -84,6 +83,9 @@
         margin: 0;
     }
     .checkbox-group label { margin: 0 !important; cursor: pointer; color: #1877f2 !important; font-weight: bold; }
+
+    .flatpickr-calendar { direction: rtl; }
+    .form-control.flatpickr-input { background-color: #ffffff !important; }
 </style>
 
 <div class="add-parking-card">
@@ -94,14 +96,12 @@
         פרסום חנייה חדשה
     {% endif %}
     </h2>
-    <p style="text-align: center; color: #666; margin-bottom: 30px;">מלא את הפרטים כדי שסטודנטים אחרים יוכלו למצוא את החנייה שלך.</p>
 
     <form method="post">
         {% csrf_token %}
 
         {% if form.non_field_errors %}
             <div style="background-color: #fff5f5; border: 1px solid #fc8181; color: #c53030; padding: 15px; border-radius: 8px; margin-bottom: 25px;">
-                <strong style="display: block; margin-bottom: 5px;">משהו השתבש:</strong>
                 <ul style="margin: 0; padding-right: 20px;">
                     {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
                 </ul>
@@ -111,32 +111,27 @@
         <div class="form-group">
             <label for="{{ form.name.id_for_label }}">שם החנייה:</label>
             {{ form.name }}
-            <div style="color: red; font-size: 12px;">{{ form.name.errors }}</div>
         </div>
 
         <div style="display: flex; gap: 15px;">
             <div class="form-group" style="flex: 1;">
                 <label for="{{ form.city.id_for_label }}">עיר:</label>
                 {{ form.city }}
-                <div style="color: red; font-size: 12px;">{{ form.city.errors }}</div>
             </div>
             <div class="form-group" style="flex: 2;">
                 <label for="{{ form.address.id_for_label }}">כתובת מלאה:</label>
                 {{ form.address }}
-                <div style="color: red; font-size: 12px;">{{ form.address.errors }}</div>
             </div>
         </div>
 
         <div class="form-group">
             <label for="{{ form.price_per_hour.id_for_label }}">מחיר לשעה (בש"ח):</label>
             {{ form.price_per_hour }}
-            <div style="color: red; font-size: 12px;">{{ form.price_per_hour.errors }}</div>
         </div>
 
         <div class="form-group">
-            <label for="{{ form.instructions.id_for_label }}">תיאור החנייה (אופציונלי):</label>
+            <label for="{{ form.instructions.id_for_label }}">תיאור החנייה:</label>
             {{ form.instructions }}
-            <div style="color: red; font-size: 12px;">{{ form.instructions.errors }}</div>
         </div>
 
         <div class="schedule-section">
@@ -144,7 +139,7 @@
 
             <div class="checkbox-group">
                 {{ form.is_active }}
-                <label for="{{ form.is_active.id_for_label }}">חנייה פעילה (מוצגת במפה וזמינה להזמנות)</label>
+                <label for="{{ form.is_active.id_for_label }}">חנייה פעילה</label>
             </div>
 
             <h4 style="margin-bottom: 10px; font-size: 15px;">ימים בשבוע:</h4>
@@ -158,57 +153,46 @@
                 <div class="day-checkbox">{{ form.available_sat }} <label for="{{ form.available_sat.id_for_label }}">ש'</label></div>
             </div>
 
-            <h4 style="margin-bottom: 10px; font-size: 15px;">שעות פעילות ביום:</h4>
             <div style="display: flex; gap: 15px; margin-bottom: 20px;">
                 <div class="form-group" style="flex: 1; margin: 0;">
-                    <label style="font-size: 14px;">משעה:</label>
+                    <label for="{{ form.available_from.id_for_label }}">משעה:</label>
                     {{ form.available_from }}
                 </div>
                 <div class="form-group" style="flex: 1; margin: 0;">
-                    <label style="font-size: 14px;">עד שעה:</label>
+                    <label for="{{ form.available_to.id_for_label }}">עד שעה:</label>
                     {{ form.available_to }}
                 </div>
             </div>
 
-            <h4 style="margin-bottom: 10px; font-size: 15px;">טווח תאריכים (השאר ריק אם קבוע):</h4>
             <div style="display: flex; gap: 15px;">
                 <div class="form-group" style="flex: 1; margin: 0;">
-                    <label style="font-size: 14px;">מתאריך:</label>
+                    <label for="{{ form.start_date.id_for_label }}">מתאריך:</label>
                     {{ form.start_date }}
                 </div>
                 <div class="form-group" style="flex: 1; margin: 0;">
-                    <label style="font-size: 14px;">עד תאריך:</label>
+                    <label for="{{ form.end_date.id_for_label }}">עד תאריך:</label>
                     {{ form.end_date }}
                 </div>
             </div>
         </div>
 
         <div class="form-group">
-            <label>בחר מיקום מדויק במפה:</label>
+            <label>בחר מיקום במפה:</label>
             <div id="picker-map"></div>
             {{ form.lat }}
             {{ form.lon }}
         </div>
+
         <div class="checkbox-group">
             {{ form.legal_declaration }}
-            <label for="{{ form.legal_declaration.id_for_label }}">
-                {{ form.legal_declaration.label }}
-            </label>
-            {% if form.legal_declaration.errors %}
-                <div style="color: red; font-size: 12px;">
-                    {{ form.legal_declaration.errors.0 }}
-                </div>
-            {% else %}
-                <div style="color: gray; font-size: 11px; margin-top: 2px;">
-                    {{ form.legal_declaration.help_text }}
-                </div>
-            {% endif %}
+            <label for="{{ form.legal_declaration.id_for_label }}">{{ form.legal_declaration.label }}</label>
         </div>
+
         <div style="display: flex; gap: 10px; margin-top: 30px;">
-            <button type="submit" style="flex: 2; padding: 14px; background-color: #1877f2; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
-                {% if edit_mode %}שמור שינויים{% else %}פרסם חנייה במפה{% endif %}
+            <button type="submit" style="flex: 2; padding: 14px; background-color: #1877f2; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                {% if edit_mode %}שמור שינויים{% else %}פרסם חנייה{% endif %}
             </button>
-            <a href="{% url 'my_listings' %}" style="flex: 1; padding: 14px; text-align: center; text-decoration: none; background-color: #f0f2f5; color: #1c1e21; border-radius: 8px; font-weight: bold; border: 1px solid #ddd; font-size: 16px;">
+            <a href="{% url 'my_listings' %}" style="flex: 1; padding: 14px; text-align: center; text-decoration: none; background-color: #f0f2f5; color: #1c1e21; border-radius: 8px; font-weight: bold; border: 1px solid #ddd;">
                 ביטול
             </a>
         </div>
@@ -216,29 +200,60 @@
 </div>
 
 <script>
-    var map = L.map('picker-map').setView([31.989, 34.773], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+    document.addEventListener("DOMContentLoaded", function() {
+        const startDatePicker = flatpickr("#{{ form.start_date.id_for_label }}", {
+            locale: "he",
+            altInput: true,
+            altFormat: "j F, Y",
+            dateFormat: "Y-m-d",
+            minDate: "today",
+            onChange: function(selectedDates, dateStr) {
+                endDatePicker.set("minDate", dateStr);
+            }
+        });
 
-    var marker;
-    var latInput = document.getElementById('{{ form.lat.id_for_label }}');
-    var lonInput = document.getElementById('{{ form.lon.id_for_label }}');
-    
-    if (latInput && lonInput && latInput.value && lonInput.value) {
-        var latlng = L.latLng(latInput.value, lonInput.value);
-        marker = L.marker(latlng).addTo(map);
-        map.setView(latlng, 15);
-    }
+        const endDatePicker = flatpickr("#{{ form.end_date.id_for_label }}", {
+            locale: "he",
+            altInput: true,
+            altFormat: "j F, Y",
+            dateFormat: "Y-m-d",
+            minDate: "today",
+            onChange: function(selectedDates, dateStr) {
+                startDatePicker.set("maxDate", dateStr);
+            }
+        });
 
-    map.on('click', function(e) {
-        if (marker) marker.setLatLng(e.latlng);
-        else marker = L.marker(e.latlng).addTo(map);
+        const timeConfig = {
+            locale: "he",
+            enableTime: true,
+            noCalendar: true,
+            altInput: true,
+            altFormat: "H:i",
+            dateFormat: "H:i",
+            time_24hr: true
+        };
 
-        if (latInput && lonInput) {
+        flatpickr("#{{ form.available_from.id_for_label }}", timeConfig);
+        flatpickr("#{{ form.available_to.id_for_label }}", timeConfig);
+
+        var map = L.map('picker-map').setView([31.989, 34.773], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        var marker;
+        var latInput = document.getElementById('{{ form.lat.id_for_label }}');
+        var lonInput = document.getElementById('{{ form.lon.id_for_label }}');
+
+        if (latInput && lonInput && latInput.value && lonInput.value) {
+            var latlng = L.latLng(latInput.value, lonInput.value);
+            marker = L.marker(latlng).addTo(map);
+            map.setView(latlng, 15);
+        }
+
+        map.on('click', function(e) {
+            if (marker) marker.setLatLng(e.latlng);
+            else marker = L.marker(e.latlng).addTo(map);
             latInput.value = e.latlng.lat.toFixed(6);
             lonInput.value = e.latlng.lng.toFixed(6);
-        } else {
-            console.error("לא מצאתי את שדות ה-lat/lon בטופס!");
-        }
+        });
     });
 </script>
 {% endblock %}
