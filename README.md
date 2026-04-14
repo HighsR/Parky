@@ -19,6 +19,7 @@ This repository is intentionally architecture-heavy: most business constraints a
 - [Development Methodology (AI Collaboration)](#development-methodology-ai-collaboration)
 - [Technical Glossary](#technical-glossary)
 - [Local Setup](#local-setup)
+- [License](#license)
 
 ## System Overview
 
@@ -408,3 +409,10 @@ python manage.py runserver
 ```
 
 Open: `http://127.0.0.1:8000/map/`
+
+## License
+
+This project is licensed under the **MIT License**.
+
+See `LICENSE` for the full text and usage terms.
+
