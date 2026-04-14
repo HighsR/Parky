@@ -29,8 +29,12 @@ class NotificationConsumer(WebsocketConsumer):
     def send_notification(self, event):
         message = event['message']
         title = event.get('title', 'התראה')
+        notif_type = event.get('notif_type', 'info')
+        target_url = event.get('target_url', '#')
 
         self.send(text_data=json.dumps({
             'message': message,
-            'title': title
+            'title': title,
+            'type': notif_type,
+            'url': target_url
         }))

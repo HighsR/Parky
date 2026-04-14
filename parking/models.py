@@ -33,7 +33,7 @@ class ParkingSpace(models.Model):
     def save(self, *args, **kwargs):
         if self.address and (self.lat is None or self.lon is None):
             try:
-                geolocator = Nominatim(user_agent="Parky_App_Project_HIT_Student" , timeout=10)
+                geolocator = Nominatim(user_agent="Parky_App_Project" , timeout=10)
                 address_string = f"{self.address}, {self.city}, Israel"
                 location = geolocator.geocode(address_string)
                 print(f"Geocoding address: {address_string} -> {location}")
@@ -137,14 +137,32 @@ class Report(models.Model):
         ('other', 'אחר'),
     ]
     parking_space = models.ForeignKey(ParkingSpace, on_delete=models.CASCADE, related_name='reports')
-    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='filed_reports')
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='filed_reports', verbose_name='מדווח')
     reason = models.CharField(max_length=20, choices=REASON_CHOICES,verbose_name='סיבת הדיווח')
     description = models.TextField(blank=True, null=True,verbose_name='תיאור נוסף (אופציונלי)')
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='נוצר ב')
     is_resolved = models.BooleanField(default=False,verbose_name='טופל')
 
     def __str__(self):
         return f"דיווח על חניה {self.parking_space.id} מאת {self.reporter.username}"
 
+class Notification(models.Model):
+    TYPE_CHOICES = [
+        ('new_booking', 'הזמנה חדשה'),
+        ('report', 'דיווח על חניה'),
+        ('order_canceled', 'הזמנה בוטלה'),
+        ('order_confirmed', 'הזמנה אושרה'),
+    ]
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications', verbose_name='מקבל')
+    message_title = models.CharField(max_length=100, verbose_name='כותרת')
+    message_content = models.TextField(verbose_name='תוכן ההודעה')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='תאריך יצירה')
+    is_read = models.BooleanField(default=False, verbose_name='נקרא')
+    notification_type = models.CharField(max_length=100, choices=TYPE_CHOICES, verbose_name='סוג התראה')
+    target_url = models.URLField(max_length=200, blank=False, verbose_name='קישור ליעד')
 
+    class Meta:
+        ordering = ['-created_at']
 
+    def __str__(self):
+        return f"{self.message_title} - {self.receiver.username}"

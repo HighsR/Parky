@@ -14,10 +14,11 @@ urlpatterns = [
     path('my-listings/', views.my_listings, name='my_listings'),
     path('edit-parking/<int:parking_id>/', views.edit_parking_space, name='edit_parking_space'),
     path('delete-parking/<int:parking_id>/', views.delete_parking_space,name='delete_parking_space'),
-    path('manage-bookings', views.manage_seller_bookings, name='manage_seller_bookings'),
+    path('manage-bookings/', views.manage_seller_bookings, name='manage_seller_bookings'),
     path('accept-booking/<int:booking_id>/', views.booking_confirmation, name='booking_confirmation'),
     path('reject-booking/<int:booking_id>/', views.booking_rejection, name='booking_rejection'),
     path('profile/', views.profile_view, name='profile'),
     path('report-parking-space/<int:parking_id>', views.report_parking_space, name='report_parking_space'),
     path('rate-booking/<int:booking_id>/', views.rate_booking, name='rate_booking'),
+    path('notifications/', views.my_notifications, name='my_notifications'),
 ]

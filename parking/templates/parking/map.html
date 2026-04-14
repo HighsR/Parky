@@ -49,10 +49,13 @@
                 var price = "{{ p.price_per_hour }}";
                 var bookUrl = "{% url 'book_parking' p.id %}";
                 var rawRating = "{{ p.avg_rating }}";
+                var reportUrl = "{% url 'report_parking_space' p.id %}";
+
                 console.log("Adding marker for: " + name + " | Raw Rating: " + rawRating);
 
-                var displayRating = rawRating
+                var displayRating = rawRating;
                 var parsedRating = parseFloat(rawRating);
+
                 if (!isNaN(parsedRating) && parsedRating > 0) {
                     var numRating = Math.round(parsedRating);
                     var starsHtml = "";
@@ -69,16 +72,17 @@
                 else {
                     displayRating = "<span style='color: gray; font-style: italic;'>טרם דורג</span>";
                 }
+
                 var marker = L.marker([lat, lon])
                     .bindPopup(
-                        '<div style="text-align: right; direction: rtl; font-family: Arial;">' +
-                        '<h3 style="margin: 0 0 5px 0;">' + name + '</h3>' +
-                        '<p style="margin: 0 0 3px 0;"><b>כתובת:</b> ' + address + '</p>' +
-                        '<p style="margin: 0 0 3px 0;"><b>דירוג:</b> ' + displayRating + '</p>' +
-                        '<p style="margin: 0 0 10px 0;"><b>מחיר:</b> ' + price + ' ש"ח לשעה</p>' +
-                        '<a href="' + bookUrl + '" ' +
-                        'style="display: block; background: #1877f2; color: white; text-align: center; padding: 8px; border-radius: 6px; text-decoration: none; font-weight: bold;">' +
-                        'להזמנה מהירה</a></div>'
+                        '<div style="text-align: right; direction: rtl; font-family: \'Segoe UI\', Tahoma, Geneva, Verdana, sans-serif; min-width: 200px;">' +
+                        '<h3 style="margin: 0 0 8px 0; font-size: 18px; color: #202124;">' + name + '</h3>' +
+                        '<p style="margin: 0 0 5px 0; font-size: 14px; color: #5f6368;"><b>כתובת:</b> ' + address + '</p>' +
+                        '<p style="margin: 0 0 5px 0; font-size: 14px; color: #5f6368;"><b>דירוג:</b> ' + displayRating + '</p>' +
+                        '<p style="margin: 0 0 15px 0; font-size: 14px; color: #5f6368;"><b>מחיר:</b> ' + price + ' ש"ח לשעה</p>' +
+                        '<a href="' + bookUrl + '" style="display: block; background-color: #1a73e8; color: white; text-align: center; padding: 10px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-bottom: 8px; font-size: 15px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">להזמנה מהירה</a>' +
+                        '<a href="'+ reportUrl + '" style="display: block; text-align: center; color: #d93025; background-color: #fff; border: 1px solid #d93025; padding: 6px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: bold;">דווח על בעיה</a>' +
+                        '</div>'
                     );
 
                 markerGroup.addLayer(marker);
