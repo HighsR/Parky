@@ -182,7 +182,7 @@
     {% if messages %}
     <div class="messages-container" style="max-width: 600px; margin: 10px auto;">
         {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}" style="padding: 10px; border-radius: 5px; background-color: #d4edda; color: #155724; text-align: center;">
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}" style="padding: 10px; border-radius: 5px; text-align: center; font-weight: bold;">
                 {{ message }}
             </div>
         {% endfor %}
