@@ -1,0 +1,16 @@
+# Core framework
+Django==5.2.1
+
+# Realtime (ASGI/WebSockets)
+channels==4.2.0
+daphne==4.1.2
+
+# Configuration and HTTP integrations
+python-dotenv==1.0.1
+requests==2.32.3
+
+# Data validation and geospatial helpers
+django-phonenumber-field==8.0.0
+phonenumbers==8.13.55
+geopy==2.4.1
+
