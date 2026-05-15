@@ -1,0 +1,40 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.venv/
+venv/
+env/
+
+# Django local database
+db.sqlite3
+db.sqlite3-journal
+
+# PyCharm / IDE settings
+.idea/
+.vscode/
+
+# Environment variables / Secrets
+.env
+local_settings.py
+
+# User uploaded files (Future proofing)
+media/*
+!media/README.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Django static collection
+staticfiles/
+static_root/
+
+# Python stuff
+.python-version
+pip-log.txt
