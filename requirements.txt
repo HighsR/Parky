@@ -2,7 +2,7 @@
 Django==5.2.1
 
 # Realtime (ASGI/WebSockets)
-channels==4.2.0
+channels-redis==4.3.0
 daphne==4.1.2
 
 # Configuration and HTTP integrations
@@ -13,4 +13,5 @@ requests==2.32.3
 django-phonenumber-field==8.0.0
 phonenumbers==8.13.55
 geopy==2.4.1
+
 
