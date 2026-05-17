@@ -38,3 +38,9 @@ static_root/
 # Python stuff
 .python-version
 pip-log.txt
+
+# Testing & Coverage
+.coverage
+htmlcov/
+_trial_marker
+_trial_temp/
