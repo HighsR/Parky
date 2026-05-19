@@ -228,16 +228,15 @@ class BookingTest(TestCase):
     def test_bad_day(self):
         self.parking.available_mon = False
         self.parking.save()
-        forbidden_monday = make_aware(datetime.datetime(2026, 5, 18, 12, 0))
-        bad_day=Booking(
+        booking_date = timezone.now().replace(year=2026, month=5, day=25, hour=10, minute=0)
+        booking = Booking(
             buyer=self.buyer,
             parking_space=self.parking,
-            start_time=forbidden_monday,
-            end_time=forbidden_monday + timedelta(hours=2),
-            status='pending',
+            start_time=booking_date.replace(hour=10, minute=0),
+            end_time=booking_date.replace(hour=12, minute=0)
         )
-        with self.assertRaisesMessage(ValidationError,"החניה לא זמינה בימי Monday"):
-            bad_day.full_clean()
+        with self.assertRaisesMessage(ValidationError, "החניה לא זמינה בימי Monday"):
+            booking.full_clean()
 
     def test_missing_foreign_keys_handled_gracefully(self):
         missing_parking_booking=Booking(

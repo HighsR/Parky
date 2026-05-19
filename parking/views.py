@@ -43,7 +43,7 @@ def book_parking(request, parking_id):
             return redirect('profile')
 
         if not profile.license_plate:
-            messages.error(request, 'בשביל לבצע בזמנה, עליך להוסיף מספר רכב בפרופיל שלך.')
+            messages.error(request, 'בשביל לבצע הזמנה, עליך להוסיף מספר רכב בפרופיל שלך.')
             return redirect('profile')
 
         if form.is_valid():
