@@ -112,13 +112,11 @@ def add_parking_space(request):
             parking_space = form.save(commit=False)
             parking_space.owner = request.user
             parking_space.is_active = True
-            parking_space.save()
-            if not parking_space.lat or not parking_space.lon:
-                parking_space.delete()
-                form.add_error(None, "לא הצלחנו למצוא את המיקום במפה. אנא דייק את הכתובת או סמן ידנית על המפה.")
-            else:
+            try:
+                parking_space.save()
                 return redirect('parking_added_success')
-
+            except ValidationError as e:
+                form.add_error(None, e)
     else:
         form = ParkingSpaceForm()
 
