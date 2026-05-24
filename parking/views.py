@@ -11,6 +11,8 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, logout
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
+
 from .models import ParkingSpace, Booking, Profile, Report, Notification
 from .forms import BookingForm, ParkingSpaceForm, UserUpdateForm, ProfileUpdateForm, ReportForm, BookingRatingForm
 from .utils import send_user_notification
@@ -148,14 +150,12 @@ def edit_parking_space(request, parking_id):
     return render(request, 'parking/add_parking_space.html', {'form': form, 'edit_mode' : True, 'parking_space': parking_space})
 
 @login_required
+@require_POST
 def delete_parking_space(request, parking_id):
     parking_space = get_object_or_404(ParkingSpace, id=parking_id, owner=request.user)
 
-    if request.method == 'POST':
-        parking_space.delete()
-        return redirect('my_listings')
-
-    return render(request, 'parking/delete_parking_space.html', {'parking_space': parking_space})
+    parking_space.delete()
+    return redirect('my_listings')
 
 @login_required
 def manage_seller_bookings(request):

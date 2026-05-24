@@ -262,3 +262,39 @@ class ParkingViewsTest(TestCase):
         self.assertIsInstance(response.context['parkings'], QuerySet)
         self.assertEqual(response.context['parkings'].count(),1)
         self.assertIn(self.parking, response.context['parkings'])
+
+    # edit_parking_space tests
+    def test_edit_parking_space_works(self):
+        self.client.force_login(self.owner)
+        form = {
+            'name': 'Edit Test',
+            'city': 'test city',
+            'address': 'test 12',
+            'legal_declaration': True,
+            'price_per_hour': 2,
+        }
+        response = self.client.post(reverse('edit_parking_space',args= [self.parking.id]),data=form)
+        self.assertRedirects(response,reverse('my_listings'))
+        self.parking.refresh_from_db()
+        self.assertTrue(ParkingSpace.objects.filter(name='Edit Test').exists())
+
+    def test_edit_parking_space_get(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse('edit_parking_space',args= [self.parking.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response,'parking/add_parking_space.html')
+        self.assertIsInstance(response.context['form'], ParkingSpaceForm)
+        self.assertTrue(response.context.get('edit_mode'))
+        self.assertEqual(response.context['parking_space'], self.parking)
+
+        # delete_parking_space tests
+    def test_delete_parking_space_works(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(reverse('delete_parking_space',args=  [self.parking.id]))
+        self.assertRedirects(response,reverse('my_listings'))
+        self.assertFalse(ParkingSpace.objects.filter(id=self.parking.id).exists())
+
+    def test_delete_parking_space_get_method_not_allowed(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse('delete_parking_space',args=  [self.parking.id]))
+        self.assertEqual(response.status_code, 405)
