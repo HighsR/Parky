@@ -228,12 +228,14 @@ class BookingTest(TestCase):
     def test_bad_day(self):
         self.parking.available_mon = False
         self.parking.save()
-        booking_date = timezone.now().replace(year=2026, month=5, day=25, hour=10, minute=0)
+        future_date = timezone.now().replace(hour=10, minute=0, second=0, microsecond=0) + timedelta(days=1)
+        while future_date.weekday() != 0:
+            future_date += timedelta(days=1)
         booking = Booking(
             buyer=self.buyer,
             parking_space=self.parking,
-            start_time=booking_date.replace(hour=10, minute=0),
-            end_time=booking_date.replace(hour=12, minute=0)
+            start_time=future_date,
+            end_time=future_date + timedelta(hours=2)
         )
         with self.assertRaisesMessage(ValidationError, "החניה לא זמינה בימי Monday"):
             booking.full_clean()

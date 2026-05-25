@@ -4,8 +4,6 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Avg, Q
-from django.dispatch import receiver
-from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, logout
@@ -181,7 +179,7 @@ def booking_confirmation(request, booking_id):
 
         new_notification = Notification.objects.create(
             receiver=booking.buyer,
-            message_title="הזמנה אושרה! ✅",
+            message_title="הזמנה אושרה!",
             message_content=f"בעל החנייה אישר את ההזמנה שלך ב-{booking.parking_space.address}.",
             notification_type="order_confirmed",
             target_url=reverse("my_bookings")
@@ -245,12 +243,10 @@ def booking_rejection(request, booking_id):
 
     return render(request, 'parking/reject_booking.html', {'booking': booking})
 
-@login_required
+@require_POST
 def logout_view(request):
     logout(request)
-
     messages.success(request,'התנתקת בהצלחה!')
-
     return redirect('map_view')
 
 @login_required
@@ -297,7 +293,8 @@ def report_parking_space(request,parking_id):
                     message_title="דיווח חדש על החנייה שלך",
                     message_content="לקוח דיווח שהמידע על החניה עשוי להיות לא מדויק. כדאי לוודא שהתיאור מעודכן",
                     notification_type="report",
-                    target_url=reverse('edit_parking_space', kwargs={'parking_id': parking_id})                )
+                    target_url=reverse('edit_parking_space', kwargs={'parking_id': parking_id})
+                )
                 send_user_notification(
                     user_id=parking.owner.id,
                     message=new_notification.message_content,

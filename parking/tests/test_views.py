@@ -1,7 +1,7 @@
-import datetime
 from http.client import responses
 
 from django.contrib.auth.forms import UserCreationForm
+from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
 from django.db.models import QuerySet
 from django.test import TestCase
@@ -9,10 +9,11 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 from unittest.mock import patch, MagicMock
-from datetime import time, timedelta
+from datetime import timedelta
 
-from ..forms import BookingForm, ParkingSpaceForm
-from ..models import ParkingSpace, Booking, Profile
+from ..forms import BookingForm, ParkingSpaceForm, ReportForm, BookingRatingForm
+from ..models import ParkingSpace, Booking, Profile, Notification
+
 
 class ParkingViewsTest(TestCase):
     def setUp(self):
@@ -118,6 +119,7 @@ class ParkingViewsTest(TestCase):
         self.assertEqual(past_booking.status, 'completed')
         self.assertEqual(future_booking.status, 'approved')
         self.assertEqual(canceled_booking.status, 'canceled')
+
     # book_parking tests
     def test_booking_fails_if_no_phone(self):
         self.profile.phone_number = None
@@ -287,7 +289,7 @@ class ParkingViewsTest(TestCase):
         self.assertTrue(response.context.get('edit_mode'))
         self.assertEqual(response.context['parking_space'], self.parking)
 
-        # delete_parking_space tests
+    # delete_parking_space tests
     def test_delete_parking_space_works(self):
         self.client.force_login(self.owner)
         response = self.client.post(reverse('delete_parking_space',args=  [self.parking.id]))
@@ -298,3 +300,348 @@ class ParkingViewsTest(TestCase):
         self.client.force_login(self.owner)
         response = self.client.get(reverse('delete_parking_space',args=  [self.parking.id]))
         self.assertEqual(response.status_code, 405)
+
+    # manage_seller_bookings tests
+    def test_manage_seller_bookings(self):
+        self.client.force_login(self.owner)
+        active_booking=Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now()+timedelta(hours=2),
+            end_time=timezone.now()+timedelta(hours=4)
+        )
+        canceled_booking=Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now()-timedelta(hours=5),
+            end_time=timezone.now()-timedelta(hours=4),
+            status='canceled'
+        )
+        response = self.client.get(reverse('manage_seller_bookings'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response,'parking/manage_bookings.html')
+        self.assertIn(active_booking,response.context['active_bookings'])
+        self.assertIn(canceled_booking,response.context['canceled_bookings'])
+
+    # booking_confirmation tests
+    def test_booking_confirmation_works(self):
+        self.client.force_login(self.owner)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() + timedelta(hours=2),
+            end_time=timezone.now() + timedelta(hours=4)
+        )
+        with patch('parking.views.send_user_notification') as mock_send_notif:
+            response = self.client.post(reverse('booking_confirmation',args=[booking.id]))
+            notification = Notification.objects.get(receiver=self.user, notification_type="order_confirmed")
+            mock_send_notif.assert_called_once_with(
+                user_id=self.user.id,
+                message=notification.message_content,
+                title=notification.message_title,
+                notif_type=notification.notification_type,
+                target_url=notification.target_url
+            )
+        booking.refresh_from_db()
+        self.assertTrue(Notification.objects.filter(receiver=self.user, notification_type="order_confirmed").exists())
+        self.assertEqual(booking.status,'approved')
+        self.assertRedirects(response,reverse('manage_seller_bookings'))
+        self.assertEqual(notification.message_title, "הזמנה אושרה!")
+        self.assertIn(self.parking.address, notification.message_content)
+
+    def test_booking_confirmation_get(self):
+        self.client.force_login(self.owner)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() + timedelta(hours=2),
+            end_time=timezone.now() + timedelta(hours=4)
+        )
+        response = self.client.get(reverse('booking_confirmation',args=[booking.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response,'parking/accept_booking.html')
+        self.assertEqual(response.context['booking'], booking)
+
+    # booking_rejection tests
+    def test_booking_rejection_works_owner(self):
+        self.client.force_login(self.owner)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() + timedelta(hours=3),
+            end_time=timezone.now() + timedelta(hours=4)
+        )
+        with patch('parking.views.send_user_notification') as mock_send_notif:
+            response = self.client.post(reverse('booking_rejection',args=[booking.id]))
+            notification = Notification.objects.get(receiver=self.user, notification_type="order_canceled")
+            mock_send_notif.assert_called_once_with(
+                user_id=self.user.id,
+                message=notification.message_content,
+                title=notification.message_title,
+                notif_type=notification.notification_type,
+                target_url=notification.target_url
+            )
+            booking.refresh_from_db()
+            self.assertTrue(Notification.objects.filter(receiver=self.user, notification_type="order_canceled").exists())
+            self.assertEqual(booking.status, 'canceled')
+            self.assertRedirects(response, reverse('manage_seller_bookings'))
+            self.assertEqual(notification.message_title, "הזמנה בוטלה!")
+            self.assertIn(self.parking.name, notification.message_content)
+
+    def test_booking_rejection_works_buyer(self):
+        self.client.force_login(self.user)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() + timedelta(hours=3),
+            end_time=timezone.now() + timedelta(hours=4)
+        )
+        with patch('parking.views.send_user_notification') as mock_send_notif:
+            response = self.client.post(reverse('booking_rejection',args=[booking.id]))
+            notification = Notification.objects.get(receiver=self.owner, notification_type="order_canceled")
+            mock_send_notif.assert_called_once_with(
+                user_id=self.owner.id,
+                message=notification.message_content,
+                title=notification.message_title,
+                notif_type=notification.notification_type,
+                target_url=notification.target_url
+            )
+            booking.refresh_from_db()
+            self.assertTrue(Notification.objects.filter(receiver=self.owner, notification_type="order_canceled").exists())
+            self.assertEqual(booking.status, 'canceled')
+            self.assertRedirects(response, reverse('my_bookings'))
+            self.assertEqual(notification.message_title, "הזמנה בוטלה!")
+            self.assertIn(self.parking.name, notification.message_content)
+
+    def test_booking_rejection_already_canceled(self):
+        self.client.force_login(self.owner)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() + timedelta(hours=3),
+            end_time=timezone.now() + timedelta(hours=4),
+            status='canceled'
+        )
+        response = self.client.post(reverse('booking_rejection',args=[booking.id]),HTTP_REFERER=reverse('map_view'))
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0]), 'הזמנה זו כבר בוטלה')
+        self.assertEqual(messages[0].level_tag, 'error')
+        self.assertRedirects(response,'/map/')
+
+    def test_booking_rejection_canceling_time_passed(self):
+        self.client.force_login(self.owner)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() + timedelta(hours=1),
+            end_time=timezone.now() + timedelta(hours=4),
+        )
+        response = self.client.post(reverse('booking_rejection',args=[booking.id]),HTTP_REFERER=reverse('map_view'))
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0]), 'זמן הביטול להזמנה זו חלף')
+        self.assertEqual(messages[0].level_tag, 'error')
+        self.assertRedirects(response,'/map/')
+
+    def test_booking_rejection_get(self):
+        self.client.force_login(self.owner)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() + timedelta(hours=3),
+            end_time=timezone.now() + timedelta(hours=4),
+        )
+        response = self.client.get(reverse('booking_rejection',args=[booking.id]))
+        self.assertEqual(response.status_code,200)
+        self.assertTemplateUsed(response,'parking/reject_booking.html')
+        self.assertEqual(response.context['booking'], booking)
+
+    # logout_view tests
+    def test_logout_view_works(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse('logout_view'))
+        self.assertRedirects(response,reverse('map_view'))
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_logout_view_requires_login(self):
+        self.client.logout()
+        response = self.client.post(reverse('logout_view'))
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, '/map/')
+
+    def test_logout_view_requires_post(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('logout_view'))
+        self.assertEqual(response.status_code, 405)
+
+    # profile_view tests
+    def test_profile_view_works(self):
+        self.client.force_login(self.user)
+        form_data = {
+            'first_name': 'test',
+            'last_name': 'test',
+            'email': 'test@example.com'
+        }
+        response = self.client.post(reverse('profile'), data=form_data)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0]), 'הפרופיל שלך עודכן בהצלחה!')
+        self.assertEqual(messages[0].level_tag, 'success')
+        self.assertRedirects(response,reverse('profile'))
+
+    # report_parking_space tests
+    def test_report_parking_space_works(self):
+        self.client.force_login(self.user)
+        form_data = {
+            'message_title': 'test',
+            'reason': 'fake'
+        }
+        response = self.client.post(reverse('report_parking_space',args=[self.parking.id]),data=form_data)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0]), 'הדיווח נשלח בהצלחה. אנו נבדוק את העניין בהקדם האפשרי.')
+        self.assertEqual(messages[0].level_tag, 'success')
+        self.assertRedirects(response,reverse('map_view'))
+
+    def test_report_parking_space_self_report(self):
+        self.client.force_login(self.owner)
+        form_data = {
+            'message_title': 'test',
+            'reason': 'fake'
+        }
+        response = self.client.post(reverse('report_parking_space',args=[self.parking.id]),data=form_data)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0]), 'אינך יכול לדווח על חנייה שבבעלותך.')
+        self.assertEqual(messages[0].level_tag, 'error')
+        self.assertRedirects(response,reverse('map_view'))
+
+    def test_report_parking_space_inaccurate_info(self):
+        self.client.force_login(self.user)
+        form_data = {
+            'message_title': 'test',
+            'reason': 'inaccurate_info'
+        }
+        with patch('parking.views.send_user_notification') as mock_send_notif:
+            response = self.client.post(reverse('report_parking_space',args=[self.parking.id]),data=form_data)
+            notification = Notification.objects.get(receiver=self.owner, notification_type="report")
+            mock_send_notif.assert_called_once_with(
+                user_id=self.owner.id,
+                message=notification.message_content,
+                title=notification.message_title,
+                notif_type=notification.notification_type,
+                target_url=notification.target_url
+            )
+            self.assertTrue(Notification.objects.filter(receiver=self.owner, notification_type="report").exists())
+            messages = list(get_messages(response.wsgi_request))
+            self.assertEqual(len(messages), 1)
+            self.assertEqual(str(messages[0]), 'הדיווח נשלח בהצלחה. אנו נבדוק את העניין בהקדם האפשרי.')
+            self.assertEqual(messages[0].level_tag, 'success')
+            self.assertRedirects(response, reverse('map_view'))
+
+    def test_report_parking_space_get(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('report_parking_space', args=[self.parking.id]))
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.context['parking'],self.parking)
+        self.assertIsInstance(response.context['form'], ReportForm)
+        self.assertTemplateUsed(response,'parking/report_parking_space.html')
+
+    # rate_booking tests
+    def test_rate_booking_works(self):
+        self.client.force_login(self.user)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() + timedelta(hours=3),
+            end_time=timezone.now() + timedelta(hours=4),
+            status='completed'
+        )
+        booking.save()
+        owner_profile, _ = Profile.objects.get_or_create(user=self.user)
+        owner_profile.phone_number = "0501234567"
+        owner_profile.license_plate = "1234567"
+        form_data = {
+            'rating': 5,
+            'rating_comment': 'rating test'
+        }
+        response = self.client.post(reverse('rate_booking',args=[booking.id]),data=form_data)
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0]), 'הדירוג נשמר בהצלחה!')
+        self.assertEqual(messages[0].level_tag, 'success')
+        self.assertRedirects(response, reverse('my_bookings'))
+        booking.refresh_from_db()
+        self.assertEqual(booking.rating, 5)
+        self.assertEqual(booking.rating_comment, 'rating test')
+
+    def test_rate_booking_not_completed(self):
+        self.client.force_login(self.user)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() + timedelta(hours=3),
+            end_time=timezone.now() + timedelta(hours=4),
+            status='pending'
+        )
+        booking.save()
+        response = self.client.post(reverse('rate_booking',args=[booking.id]))
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0]), 'אפשר לדרג רק הזמנה שהסתיימה.')
+        self.assertEqual(messages[0].level_tag, 'error')
+        self.assertRedirects(response, reverse('my_bookings'))
+
+    def test_rate_booking_already_rated(self):
+        self.client.force_login(self.user)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() + timedelta(hours=3),
+            end_time=timezone.now() + timedelta(hours=4),
+            status='completed',
+            rating=4
+        )
+        booking.save()
+        response = self.client.post(reverse('rate_booking', args=[booking.id]))
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 1)
+        self.assertEqual(str(messages[0]), 'כבר דירגת הזמנה זו.')
+        self.assertEqual(messages[0].level_tag, 'info')
+        self.assertRedirects(response, reverse('my_bookings'))
+
+    def test_rate_booking_get(self):
+        self.client.force_login(self.user)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() - timedelta(hours=5),
+            end_time=timezone.now() - timedelta(hours=4),
+            status='completed'
+        )
+        booking.save()
+        response = self.client.get(reverse('rate_booking', args=[booking.id]), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['booking'].id, booking.id)
+        self.assertIsInstance(response.context['form'], BookingRatingForm)
+        self.assertIsNone(response.context['next_url'])
+        self.assertTemplateUsed(response,'parking/rate_booking.html')
+
+    def test_rate_booking_invalid_form(self):
+        self.client.force_login(self.user)
+        booking = Booking.objects.create(
+            buyer=self.user,
+            parking_space=self.parking,
+            start_time=timezone.now() - timedelta(hours=5),
+            end_time=timezone.now() - timedelta(hours=4),
+            status='completed'
+        )
+        invalid_data = {
+            'rating': 99,
+            'rating_comment': 'bad test'
+        }
+
+        response = self.client.post(reverse('rate_booking', args=[booking.id]), data=invalid_data)
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['form'].is_valid())
