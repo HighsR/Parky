@@ -645,3 +645,33 @@ class ParkingViewsTest(TestCase):
         response = self.client.post(reverse('rate_booking', args=[booking.id]), data=invalid_data)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.context['form'].is_valid())
+
+    # my_notifications tests
+    def test_my_notifications_works(self):
+        self.client.force_login(self.user)
+        notfication = Notification.objects.create(
+            receiver=self.user,
+            message_content='Test Message',
+            message_title='Test Title',
+            notification_type='new_booking',
+            target_url='/map/'
+        )
+        response = self.client.get(reverse('my_notifications'))
+        self.assertEqual(response.status_code,200)
+        self.assertIn(notfication, response.context['notifications'])
+        self.assertTemplateUsed(response,'parking/notifications.html')
+
+    # delete_notification tests
+    def test_delete_notification_works(self):
+        self.client.force_login(self.user)
+        notfication = Notification.objects.create(
+            receiver=self.user,
+            message_content='Test Message',
+            message_title='Test Title',
+            notification_type='new_booking',
+            target_url='/map/'
+        )
+        self.assertTrue(Notification.objects.filter(id=notfication.id).exists())
+        response = self.client.post(reverse('delete_notification',args=[notfication.id]))
+        self.assertFalse(Notification.objects.filter(id=notfication.id).exists())
+        self.assertRedirects(response,reverse('my_notifications'))
