@@ -27,3 +27,14 @@ jobs:
 
     - name: Build Docker images
       run: docker compose build
+
+    - name: Start services
+      run: docker compose up -d
+
+    - name: Wait for database
+      run: sleep 10
+
+    - name: Run Tests with Coverage
+      run: |
+        docker exec parky-app coverage run --source='parking' manage.py test parking.tests
+        docker exec parky-app coverage report -m
