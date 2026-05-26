@@ -1,5 +1,3 @@
-from http.client import responses
-
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.messages import get_messages
 from django.core.exceptions import ValidationError
