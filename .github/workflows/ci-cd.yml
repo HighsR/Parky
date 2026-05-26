@@ -38,3 +38,22 @@ jobs:
       run: |
         docker exec parky-app coverage run --source='parking' manage.py test parking.tests
         docker exec parky-app coverage report -m
+
+deploy:
+  needs: build-test
+  runs-on: ubuntu-latest
+
+  if: github.ref == 'refs/heads/master'
+
+  steps:
+    - name: Deploy to AWS EC2 via SSH
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ubuntu
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd /home/ubuntu/Parky
+          git pull origin master
+          docker compose down
+          docker compose up -d --build
