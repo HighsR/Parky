@@ -4,13 +4,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Avg, Q
-from django.dispatch import receiver
-from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, logout
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
+
 from .models import ParkingSpace, Booking, Profile, Report, Notification
 from .forms import BookingForm, ParkingSpaceForm, UserUpdateForm, ProfileUpdateForm, ReportForm, BookingRatingForm
 from .utils import send_user_notification
@@ -43,7 +43,7 @@ def book_parking(request, parking_id):
             return redirect('profile')
 
         if not profile.license_plate:
-            messages.error(request, 'בשביל לבצע בזמנה, עליך להוסיף מספר רכב בפרופיל שלך.')
+            messages.error(request, 'בשביל לבצע הזמנה, עליך להוסיף מספר רכב בפרופיל שלך.')
             return redirect('profile')
 
         if form.is_valid():
@@ -112,13 +112,11 @@ def add_parking_space(request):
             parking_space = form.save(commit=False)
             parking_space.owner = request.user
             parking_space.is_active = True
-            parking_space.save()
-            if not parking_space.lat or not parking_space.lon:
-                parking_space.delete()
-                form.add_error(None, "לא הצלחנו למצוא את המיקום במפה. אנא דייק את הכתובת או סמן ידנית על המפה.")
-            else:
+            try:
+                parking_space.save()
                 return redirect('parking_added_success')
-
+            except ValidationError as e:
+                form.add_error(None, e)
     else:
         form = ParkingSpaceForm()
 
@@ -150,14 +148,12 @@ def edit_parking_space(request, parking_id):
     return render(request, 'parking/add_parking_space.html', {'form': form, 'edit_mode' : True, 'parking_space': parking_space})
 
 @login_required
+@require_POST
 def delete_parking_space(request, parking_id):
     parking_space = get_object_or_404(ParkingSpace, id=parking_id, owner=request.user)
 
-    if request.method == 'POST':
-        parking_space.delete()
-        return redirect('my_listings')
-
-    return render(request, 'parking/delete_parking_space.html', {'parking_space': parking_space})
+    parking_space.delete()
+    return redirect('my_listings')
 
 @login_required
 def manage_seller_bookings(request):
@@ -183,7 +179,7 @@ def booking_confirmation(request, booking_id):
 
         new_notification = Notification.objects.create(
             receiver=booking.buyer,
-            message_title="הזמנה אושרה! ✅",
+            message_title="הזמנה אושרה!",
             message_content=f"בעל החנייה אישר את ההזמנה שלך ב-{booking.parking_space.address}.",
             notification_type="order_confirmed",
             target_url=reverse("my_bookings")
@@ -247,12 +243,10 @@ def booking_rejection(request, booking_id):
 
     return render(request, 'parking/reject_booking.html', {'booking': booking})
 
-@login_required
+@require_POST
 def logout_view(request):
     logout(request)
-
     messages.success(request,'התנתקת בהצלחה!')
-
     return redirect('map_view')
 
 @login_required
@@ -299,7 +293,8 @@ def report_parking_space(request,parking_id):
                     message_title="דיווח חדש על החנייה שלך",
                     message_content="לקוח דיווח שהמידע על החניה עשוי להיות לא מדויק. כדאי לוודא שהתיאור מעודכן",
                     notification_type="report",
-                    target_url=reverse('edit_parking_space', kwargs={'parking_id': parking_id})                )
+                    target_url=reverse('edit_parking_space', kwargs={'parking_id': parking_id})
+                )
                 send_user_notification(
                     user_id=parking.owner.id,
                     message=new_notification.message_content,

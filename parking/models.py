@@ -31,6 +31,7 @@ class ParkingSpace(models.Model):
     available_sat = models.BooleanField(default=True, verbose_name="ש'")
 
     def save(self, *args, **kwargs):
+        self.full_clean()
         if self.address and (self.lat is None or self.lon is None):
             try:
                 geolocator = Nominatim(user_agent="Parky_App_Project" , timeout=10)
@@ -41,11 +42,25 @@ class ParkingSpace(models.Model):
                     self.lat = location.latitude
                     self.lon = location.longitude
                 else:
-                    print(f"Could not geocode address: {address_string}")
+                    raise ValidationError(f"הכתובת '{address_string}' לא נמצאה במפה. אנא הזן כתובת מדויקת יותר.")
             except Exception as e:
-                print(f"Error geocoding address: {e}")
+                raise ValidationError(f"שגיאה בניסיון לאתר את הכתובת במפה: {e}")
 
         super().save(*args, **kwargs)
+    def clean(self):
+        super().clean()
+        if not self.legal_declaration:
+            raise ValidationError("חובה לאשר הצהרה חוקית")
+
+        if self.price_per_hour and self.price_per_hour < 0:
+            raise ValidationError("המחיר לא יכול להיות שלילי")
+
+        if self.start_date and self.end_date:
+            if self.start_date > self.end_date:
+                raise ValidationError("תאריך הסיום לא יכול להיות מוקדם מתאריך ההתחלה.")
+        if self.available_from and self.available_to:
+            if self.available_from > self.available_to:
+                raise ValidationError("זמן סיום לא יכול להיות מוקדם מזמן ההתחלה.")
 
     def __str__(self):
         return f"{self.name} - {self.address}"

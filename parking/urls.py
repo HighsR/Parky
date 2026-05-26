@@ -5,6 +5,7 @@ from . import views
 
 urlpatterns = [
     path('map/', views.map_view, name='map_view'),
+    path('logout/', views.logout_view, name='logout_view'),
     path('book/<int:parking_id>/', views.book_parking, name='book_parking'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('my-bookings/', views.my_bookings, name='my_bookings'),
@@ -21,5 +22,5 @@ urlpatterns = [
     path('report-parking-space/<int:parking_id>', views.report_parking_space, name='report_parking_space'),
     path('rate-booking/<int:booking_id>/', views.rate_booking, name='rate_booking'),
     path('notifications/', views.my_notifications, name='my_notifications'),
-path('delete-notification/<int:notif_id>/', views.delete_notification, name='delete_notification'),
+    path('delete-notification/<int:notif_id>/', views.delete_notification, name='delete_notification'),
 ]

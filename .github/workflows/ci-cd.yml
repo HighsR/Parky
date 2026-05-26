@@ -1,0 +1,59 @@
+name: Parky CI Pipeline
+
+on:
+  push:
+    branches: [ "master","feature/*"]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Create .env file
+      run: |
+        echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> .env
+        echo "DEBUG=False" >> .env
+        echo "DB_NAME=postgres" >> .env
+        echo "DB_USER=postgres" >> .env
+        echo "DB_PASSWORD=postgres" >> .env
+
+    - name: Build Docker images
+      run: docker compose build
+
+    - name: Start services
+      run: docker compose up -d
+
+    - name: Wait for database
+      run: sleep 10
+
+    - name: Run Tests with Coverage
+      run: |
+        docker exec parky-app coverage run --source='parking' manage.py test parking.tests
+        docker exec parky-app coverage report -m
+
+  deploy:
+    needs: build-test
+    runs-on: ubuntu-latest
+
+    if: github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Deploy to AWS EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/Parky
+            git pull origin master
+            docker compose down
+            docker compose up -d --build
