@@ -11,7 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .models import ParkingSpace, Booking, Profile, Report, Notification
+from .models import ParkingSpace, Booking, Profile, Notification
 from .forms import BookingForm, ParkingSpaceForm, UserUpdateForm, ProfileUpdateForm, ReportForm, BookingRatingForm
 from .utils import send_user_notification
 

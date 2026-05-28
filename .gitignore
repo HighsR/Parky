@@ -44,3 +44,4 @@ pip-log.txt
 htmlcov/
 _trial_marker
 _trial_temp/
+.pytest_cache/

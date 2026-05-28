@@ -1,5 +1,5 @@
 from django.urls import path, include
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, RedirectView
 
 from . import views
 
@@ -23,4 +23,5 @@ urlpatterns = [
     path('rate-booking/<int:booking_id>/', views.rate_booking, name='rate_booking'),
     path('notifications/', views.my_notifications, name='my_notifications'),
     path('delete-notification/<int:notif_id>/', views.delete_notification, name='delete_notification'),
+    path('', RedirectView.as_view(url='/map/', permanent=False)),
 ]

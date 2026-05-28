@@ -1,6 +1,8 @@
 # Parky - Real-Time Parking Marketplace
 
-Parky is a Django-based marketplace for student parking rentals, designed as an event-driven web platform rather than a static listing site. The system combines strict backend validation, real-time notifications, and geospatial UX to support reliable booking flows under concurrent user activity.
+Parky is a Django-based marketplace for student parking rentals, designed as an event-driven web platform rather than a static listing site. The system combines strict backend validation, real-time notifications, geospatial UX, Docker-based deployment, and CI/CD automation to support reliable booking flows under concurrent user activity.
+
+The production website is available at: https://parky-app.me
 
 This repository is intentionally architecture-heavy: most business constraints are enforced server-side and modeled explicitly in the domain layer.
 
@@ -15,6 +17,9 @@ This repository is intentionally architecture-heavy: most business constraints a
 - [Real-Time Architecture](#real-time-architecture)
 - [Geospatial and Frontend Integration](#geospatial-and-frontend-integration)
 - [Security and DevOps](#security-and-devops)
+- [Production Deployment](#production-deployment)
+- [CI/CD](#cicd)
+- [Dockerized Development](#dockerized-development)
 - [Project Structure](#project-structure)
 - [Development Methodology (AI Collaboration)](#development-methodology-ai-collaboration)
 - [Technical Glossary](#technical-glossary)
@@ -33,12 +38,11 @@ The platform design emphasizes:
 1. **Data integrity:** booking slot consistency and vehicle identity validation.
 2. **State correctness:** explicit booking lifecycle states.
 3. **Responsiveness:** event-driven notifications over WebSockets.
-4. **Operational simplicity:** local-first development with SQLite and in-memory channels.
+4. **Operational simplicity:** containerized deployment with PostgreSQL and Redis.
 
 ## Backend Engineering Impact
 
-This project was engineered to demonstrate backend ownership across validation, state management, realtime delivery, and data integrity under real user workflows.
-
+This project demonstrates backend validation, state management, real-time delivery, deployment automation, and data integrity under real user workflows
 ### Delivered Backend Capabilities
 
 - **Layered validation path:** form-level parsing (`BookingForm`, `ProfileUpdateForm`) and domain-level invariants (`Booking.clean`) prevent invalid state transitions.
@@ -47,6 +51,7 @@ This project was engineered to demonstrate backend ownership across validation, 
 - **Identity integrity integration:** external Israeli government data is queried in real time for license plate verification; Israeli phone standards are enforced via `django-phonenumber-field`.
 - **Operational policy enforcement:** self-booking prevention, cancellation cutoff policy, and role-based ownership constraints are validated in backend workflows.
 - **Reputation and trust loop:** completed-booking-only ratings, one-time rating constraint, aggregate owner scoring, and report-based moderation signals.
+- **Deployment automation:** Dockerized runtime and GitHub Actions CI/CD support repeatable builds and test execution.
 
 ### Quantified System Scope (Current Implementation)
 
@@ -55,6 +60,7 @@ This project was engineered to demonstrate backend ownership across validation, 
 - **7 weekday availability flags:** Sunday-Saturday control at model level.
 - **2 external government datasets:** fallback verification chain for vehicle plate validation.
 - **1 realtime notification channel per user:** group-based event fan-out via `user_<id>`.
+- **98% test coverage:** the project includes automated tests covering models, forms, and views.
 
 These choices were made to reduce hidden state bugs, limit race-condition surface area in application logic, and keep business rules auditable in code.
 
@@ -311,8 +317,15 @@ The final authority remains backend model validation, creating defense-in-depth 
 
 - `SECRET_KEY` is sourced from environment rather than hardcoded.
 - `DEBUG` is parsed from environment string.
+- `ALLOWED_HOSTS` is configured from environment, which includes `parky-app.me` in production.
 
-This keeps sensitive configuration outside version-controlled source.
+### Database and Runtime Configuration
+
+The project is configured for PostgreSQL in production and uses Redis for Channels:
+
+- PostgreSQL database settings are read from environment variables.
+- Redis powers the Channels layer for real-time notifications.
+- Static files are served with `whitenoise` in containerized deployments.
 
 ### `.gitignore` Strategy
 
@@ -324,10 +337,74 @@ This keeps sensitive configuration outside version-controlled source.
 - IDE and OS noise (`.idea/`, `.vscode/`, `.DS_Store`, `Thumbs.db`).
 - Uploaded media files (`media/*`) while preserving `media/README.md`.
 
-### Operational Notes
+## Production Deployment
 
-- Current channel layer backend is `InMemoryChannelLayer` (development-friendly).
-- For multi-instance production, replace with Redis-backed channel layer.
+Parky is deployed as a production web application at `https://parky-app.me:8000/map`.
+
+### AWS Deployment Overview
+
+The project is deployed on AWS using a Dockerized runtime.
+
+Current deployment flow includes:
+- GitHub Actions pipeline for build, test, and deployment steps.
+- AWS EC2 deployment via SSH.
+- Docker Compose-based restart on the server.
+
+Operational notes:
+
+- `DEBUG=False` in production.
+- `ALLOWED_HOSTS` includes `parky-app.me`.
+- Database runs as a containerized PostgreSQL instance on the EC2 server alongside the application.
+- Channels uses a Redis-backed channel layer instead of in-memory storage.
+- Static files are collected during deploy and served from production storage.
+- Migrations run as part of the deployment pipeline.
+
+## CI/CD
+
+The project includes GitHub Actions-based CI/CD.
+
+### Pipeline Goals
+
+- Run automated tests on every relevant push or pull request.
+- Validate the Django app in a repeatable environment.
+- Support Docker-based build and deployment workflows.
+- Prevent regressions before production release.
+
+### What the pipeline covers
+
+- Test execution for the Django app.
+- Dependency installation.
+- Linting or validation steps if configured in workflow files.
+- Container build verification if included in the workflow.
+
+This CI/CD setup helps keep the codebase stable while supporting frequent changes.
+
+## Dockerized Development
+
+The project is containerized using Docker.
+
+### Docker setup
+
+- `Dockerfile` builds the Django application image.
+- `compose.yaml` defines:
+  - `web` service for the Django app
+  - `db` service for PostgreSQL
+  - `redis` service for Channels
+- The web container runs Django through Daphne for ASGI/WebSocket support.
+
+### Runtime behavior
+
+- The application runs as a containerized service instead of a local-only process.
+- Postgres and Redis are provisioned as separate services for development.
+- Static assets are mounted into a shared volume for container execution.
+
+Example local Docker run:
+
+```powershell
+docker compose up --build
+```
+
+Open: `http://127.0.0.1:8000/map/`
 
 ## Project Structure
 
@@ -335,6 +412,8 @@ This keeps sensitive configuration outside version-controlled source.
 Parky/
   manage.py
   db.sqlite3
+  Dockerfile
+  compose.yaml
   .gitignore
   parking/
     models.py
@@ -345,26 +424,31 @@ Parky/
     utils.py
     context_processors.py
     templates/
+    tests/
   parky_project/
     settings.py
     asgi.py
     urls.py
+  .github/
+    workflows/
 ```
 
 ## Development Methodology (AI Collaboration)
 
-I acted as the **Lead Architect** and implemented the core system design and backend engineering stack, including:
+This project was developed with a transparent division of labor between human-driven architecture and AI-assisted execution.
 
-- Domain modeling and schema design.
-- Booking validation invariants and state management.
-- External API integration for vehicle identity checks.
-- Real-time event and notification architecture (Channels/WebSockets).
+**Human-Led (Core Engineering & Architecture):**
+- Domain modeling, database schema, and state machine design.
+- Core business logic: booking validation invariants, temporal collision prevention, and security rules.
+- Test Engineering: Comprehensive automated testing achieving 98% coverage, utilizing structured methodologies (e.g., the AAA pattern). The `coverage` Python library was actively used during development to monitor and ensure test completeness in real time.
+- Architectural decision-making: selecting PostgreSQL, Redis, Django Channels, and determining the deployment strategy.
 
-AI-assisted development was used strategically for **frontend UI component scaffolding and CSS layout acceleration**, while architecture, backend logic, and integration correctness remained fully human-led.
+**AI-Assisted (DevOps Mentorship & Frontend):**
+- **DevOps & CI/CD:** AI was utilized as an interactive cloud infrastructure mentor. Through active Q&A and guided learning, it helped structure Docker Compose, AWS EC2 provisioning, and GitHub Actions, while the actual integration and debugging were executed manually.
+- **Frontend & UI:** HTML scaffolding, map integration (Leaflet.js), Flatpickr localization, and general CSS layout.
+- **Learning Resource:** AI served as a dynamic documentation tool and pair-programmer for exploring edge cases and learning advanced patterns (like testing strategies and WebSocket routing), rather than as a blind code generator.
 
-For backend engineering, AI was used primarily as a **learning and reasoning assistant**: validating assumptions, exploring edge cases, and stress-testing design decisions. It was used far less for direct backend code generation and more for improving understanding and decision quality.
-
-In short: AI was leveraged as a productivity and learning multiplier, not an architectural decision-maker.
+**Summary:** AI was leveraged as a senior DevOps mentor, frontend accelerator, and learning tool. However, the core backend logic, test implementation, and system architecture decisions were strictly human-engineered.
 
 ## Technical Glossary
 
@@ -378,6 +462,8 @@ In short: AI was leveraged as a productivity and learning multiplier, not an arc
 | **WebSocket Fan-out** | Event distribution to per-user groups (`user_<id>`) so notifications are pushed to all active client sessions. |
 | **Transactional Locking** | Database row-level locking strategy (`select_for_update`) to serialize conflicting booking writes. |
 | **Exclusion Constraint** | Database-level guarantee (typically PostgreSQL) that prevents overlapping time ranges for the same resource. |
+| **CI/CD** | Automated build and test pipeline, here implemented with GitHub Actions. |
+| **Containerization** | Packaging the app and its runtime dependencies into Docker images for repeatable deployment. |
 
 ## Local Setup
 
@@ -385,6 +471,8 @@ In short: AI was leveraged as a productivity and learning multiplier, not an arc
 
 - Python 3.10+
 - `pip`
+- Docker and Docker Compose for containerized development
+- Access to the required environment variables in `.env`
 
 ### Installation
 
@@ -399,6 +487,13 @@ Create `.env` in project root:
 ```env
 SECRET_KEY=your-secret-key
 DEBUG=True
+ALLOWED_HOSTS=localhost,127.0.0.1 #if you want to run it in production add your domain
+DB_NAME=postgres
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_HOST=db
+DB_PORT=5432
+REDIS_HOST=redis
 ```
 
 Run migrations and start the server:
@@ -408,11 +503,16 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Open: `http://127.0.0.1:8000/map/`
+Or run the containerized stack:
+
+```powershell
+docker compose up --build
+```
+
+Open locally: `http://127.0.0.1:8000/map/`
 
 ## License
 
 This project is licensed under the **MIT License**.
 
 See `LICENSE` for the full text and usage terms.
-
