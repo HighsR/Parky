@@ -488,6 +488,7 @@ Create `.env` in project root:
 SECRET_KEY=your-secret-key
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1 #if you want to run it in production add your domain
+CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000 #in production add https://your-domain.com
 DB_NAME=postgres
 DB_USER=postgres
 DB_PASSWORD=postgres

@@ -11,6 +11,11 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+csrf_trusted_origins_str = os.environ.get('CSRF_TRUSTED_ORIGINS', '')
+if csrf_trusted_origins_str:
+    CSRF_TRUSTED_ORIGINS = csrf_trusted_origins_str.split(',')
+
 INSTALLED_APPS = [
     'daphne',
     'django.contrib.admin',
